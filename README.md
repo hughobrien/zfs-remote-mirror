@@ -38,9 +38,9 @@ You will need:
 
 I'm specifying a laptop as it's a lot more palatable a device to ask someone to let you keep in their home. You can of course use a desktop if you have sufficient charm.
 
-If you decide to go with older, "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a bootable partition manually [(some guidance)](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the bootscreen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS (Server)](http://releases.ubuntu.com/trusty/) having this feature.
+Please note, that ZFS is designed for serious, enterprise grade environments. Using it on older consumer hardware is doing an injustice to its many features, and the kernel will remind you of this on every boot. That said, it can be squeezed into this restricted use case, and you can have many of the benefits most important to backup system. Though if you can supply more modern hardware, do. A system with ECC memory would be a wise investment also. Even if it is an older model.
 
-Even fault-free RAM isn't enough, in an ideal world, we'd be using ECC memory on everything, but you and I have had the misfortune to be born into this world, so we're going to have to make do. Unlike a heavily trafficked NAS box however, the modest usage profile of this system and the fact that it only holds copies of data stored elsewhere means we're probably okay.
+If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a bootable partition manually [(some guidance)](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the bootscreen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS (Server)](http://releases.ubuntu.com/trusty/) having this.
 
 **Note:** The current FreeBSD RaspberryPi images do not include the ZFS kernel modules by default. It's possible to [build your own images](https://wiki.freebsd.org/FreeBSD/arm/Raspberry%20Pi) however.
 Why not mirror the drives locally?
@@ -80,7 +80,7 @@ Threat Model
 ------------
 Since nothing is really *secure*, just appropriately difficult, it's good to define what threats we'd like to defend against. This way we can spot when we've gone too far, or not far enough.
 
-* Data Loss - Solved by the existence of the remote backup and regular synchronisation.
+* Data Loss - Made difficult by the existence of the remote backup and regular synchronisation.
 * Data Leaks - Made difficult by the at-rest encryption on the remote disk.
 * Server Breach (Digital) - Made difficult by judicious use of SSH keys.
 * Server Breach (Physical) - Made difficult by the front door lock of the home.
@@ -237,7 +237,7 @@ We'll be editing several config files so I hope you know your *vi* keybindings. 
 	ntpd_enable="YES" # keep the system regular
 	ntpd_sync_on_start="YES"
 	powerd_enable="YES" # keep power usage down
-	sendmail_enable="NONE" # no need for sendmail
+	sendmail_enable="NO" # no need for sendmail
 	sendmail_submit_enable="NO"
 	sendmail_outbound_enable="NO"
 	sendmail_msp_queue_enable="NO"
@@ -288,13 +288,12 @@ Note that this file isn't present by default.
 	autoboot_delay=3 # speed up booting
 	hint.p4tcc.0.disabled=1 # use only modern CPU throttling (x86 only)
 	hint.acpi_throttle.0.disabled=1 # does your SoC use ACPI? RPi doesn't.
-	zfs_load="YES" # pre-load ZFS module (see below)
+	zfs_load="YES"
+	geom_eli_load="YES"
 	vm.kmem_size="150M" # limit the kernel's memory usage
 	vm.kmem_size_max="150M"
 	vfs.zfs.arc_max="32M" # limit the ZFS cache size
 	vfs.zfs.vdev.cache.size="16M" # limit per-device cache
-
-The ZFS module is pre-loaded here as even though later on we'll configure *zfs* to allow usage by non-root users, if the kernel module isn't present they lack the permissions to auto-load it.
 
 /etc/sshd/sshd_config
 ---------------------
