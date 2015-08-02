@@ -600,6 +600,8 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 	[ ! -f "$last_sent_file" ] && touch "$last_sent_file"
 
 	latest_remote="$(cat "$last_sent_file")"
+	[ -z $latest_remote ] && echo "remote state unknown"
+
 	latest_local="$(zfs list -H -d1 -t snapshot\
 		| grep -e '-[0-9][0-9]T[0-9][0-9]:' \
 		| cut -f1 \
@@ -618,7 +620,6 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 	}
 
 	preview() {
-		[ -z $latest_remote ] && echo "remote state unknown"
 		zfs diff "$latest_remote" "$latest_local" | less
 		echo "Size in MB:" $(echo $snapshot_size / 1024^2 | bc)
 	}
