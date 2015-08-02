@@ -642,6 +642,10 @@ You'll have to make it executable too:
 
 	hugh@local$ chmod 744 ~/backup.sh
 
+If you're still in the same shell that you ran the initial backup from, we can set the *remote state* file now.
+
+	hugh@local$ echo "wd@$snapname" > .zfs-last-sent
+
 Physically Placing Your Remote System
 =====================================
 Now we can place the backup system in its permanent location. This is highly subjective but here are a few points to bear in mind:
