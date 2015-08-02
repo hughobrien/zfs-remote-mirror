@@ -98,7 +98,7 @@ Any good crypto system is defined by the secrets it requires. For this setup, we
 * The password for the master SSH signing key trusted by the backup system.
 * The encryption key for the hard disk.
 
-Other secrets like the passwords for the root and the user account are less important. They will also not really be used beyond the initial setup stage, so I recommend choosing one single strong password and using it for all three cases. You can generate one like this:
+Other secrets like the passwords for the root and the user account are less important. They will also not really be used beyond the initial setup stage, so I recommend choosing one single [strong password](https://xkcd.com/538/) and using it for all three cases. You can generate one like this:
 
 	hugh@local$ echo $(strings /dev/random | sed -E '/^.{6}$/!d;/[[:space:]]|[[:punct:]]/d' | head -n 2 | tr -d '\n')
 
