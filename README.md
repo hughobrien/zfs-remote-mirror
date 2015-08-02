@@ -774,7 +774,8 @@ Further Reading
 I would first recommend the handbook sections on [zpool](https://www.freebsd.org/doc/handbook/zfs-zpool.html) and [zfs](https://www.freebsd.org/doc/handbook/zfs-zfs.html), followed by their respective *man* pages. They're long, but you've already come this far. [geli](https://www.freebsd.org/cgi/man.cgi?geli(8)) too, is required reading.
 
 Here are some videos discussing ZFS:
-	* [OpenZFS Overview](https://www.youtube.com/watch?v=RQlMDmnty80)
-	* [OpenZFS Remote Replication](https://www.youtube.com/watch?v=RQlMDmnty80) (part two of 'Overview' talk.
 
-Thank you for your attention, may you never need anything this guide helps prevent against. Please send details of any mistakes to *obrien.hugh* at the Google mail system.
+* [OpenZFS Overview](https://www.youtube.com/watch?v=RQlMDmnty80)
+* [OpenZFS Remote Replication](https://www.youtube.com/watch?v=RQlMDmnty80)
+
+Thank you for your attention, may you never need anything this guide helps prevent against. Please send details of any mistakes or areas for improvement to *obrien.hugh* at the Google mail system.
