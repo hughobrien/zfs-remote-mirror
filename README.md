@@ -17,6 +17,7 @@ You can have:
 * Automated incremental backups so that only changed data is transferred.
 * Complete at-rest encryption, with the key resident in memory only during backup operations.
 * Hardened communication security, so your data is safe in-flight.
+* A minimalistic, locked down, low-power remote server requiring almost no maintenance.
 * All wrapped up as a single command, powered entirely by tools in the FreeBSD base system.
 
 Alternatively, if you're not currently enjoying the benefits of ZFS, you could take this opportunity to set up a low cost home storage server. You'll need two of each component as described below. If you're anything like me you probably have files scattered across dozens of devices and it's actually quite nice to consolidate them in an easily accessible and safe place.
