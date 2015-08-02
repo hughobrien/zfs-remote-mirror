@@ -530,12 +530,13 @@ Don't set any passwords on these two keys, we need them to be scriptable.
 	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-fifo
 	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-send
 
-Now sign them. This will ask for the CA password.
+These two keys are not password protected, but they are going to be completely restricted in what they can do. This allows us to use them in an automatic way, without the fear of them being abused.
+Now bless them. This will ask for the CA password.
 
 	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-fifo -O clear -O force-command="cd /tmp; mkfifo -m 600 k; cat - > k; rm k" -n hugh ~/.ssh/knox-fifo.pub
 	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="./zfs-receive.sh" -n root ~/.ssh/knox-send.pub
 
-Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a *fifo* on the */tmp* memory disk that we write to from *stdin*. This of course, will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next, as root. Upon reading the *fifo* the key is transferred directly from our local system to the geli process and never touches the disk, or the RAM disk.
+Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a [*fifo*](https://www.freebsd.org/cgi/man.cgi?query=mkfifo&sektion=1) on the */tmp* memory disk that we write to from *stdin*. This of course, will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next, as root. Upon reading the *fifo* the key is transferred directly from our local system to the *geli* process and never touches the disk, or the RAM disk.
 
 And before you complain, that's not a [*useless use of cat*](https://image.slidesharecdn.com/youcodelikeasysadmin-141120122908-conversion-gate02/95/you-code-like-a-sysadmin-confessions-of-an-accidental-developer-10-638.jpg?cb=1416487010), it's required for *tcsh*.
 
@@ -601,7 +602,7 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 	[ ! -f "$last_sent_file" ] && touch "$last_sent_file"
 
 	latest_remote="$(cat "$last_sent_file")"
-	[ -z $latest_remote ] && echo "remote state unknown"
+	[ -z $latest_remote ] && echo "remote state unknown; set it in $last_sent_file"
 
 	latest_local="$(zfs list -H -d1 -t snapshot\
 		| grep -e '-[0-9][0-9]T[0-9][0-9]:' \
@@ -767,5 +768,8 @@ Further Reading
 ==============
 
 I would first recommend the handbook sections on [zpool](https://www.freebsd.org/doc/handbook/zfs-zpool.html) and [zfs](https://www.freebsd.org/doc/handbook/zfs-zfs.html), followed by their respective *man* pages. They're long, but you've already come this far. [geli](https://www.freebsd.org/cgi/man.cgi?geli(8)) too, is required reading.
+
+Here are some videos discussing ZFS:
+	* [OpenZFS Remote Replication](https://www.youtube.com/watch?v=UOX7WDAjqso)
 
 Thank you for your attention, may you never need anything this guide helps prevent against. Please send details of any mistakes to *obrien.hugh* at the Google mail system.
