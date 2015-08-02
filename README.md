@@ -1,4 +1,4 @@
-Remote ZFS Mirrors The Hard Way
+ZFS Remote Mirrors for Home Use
 ===============================
 Why pay a nebulous cloud provider to store copies of our boring, but nice to have data? Old photographs, home videos, college papers, MP3s from Napster; let's just stick them somewhere and hope the storage doesn't rot.
 
@@ -774,6 +774,7 @@ Further Reading
 I would first recommend the handbook sections on [zpool](https://www.freebsd.org/doc/handbook/zfs-zpool.html) and [zfs](https://www.freebsd.org/doc/handbook/zfs-zfs.html), followed by their respective *man* pages. They're long, but you've already come this far. [geli](https://www.freebsd.org/cgi/man.cgi?geli(8)) too, is required reading.
 
 Here are some videos discussing ZFS:
-	* [OpenZFS Remote Replication](https://www.youtube.com/watch?v=UOX7WDAjqso)
+	* [OpenZFS Overview](https://www.youtube.com/watch?v=RQlMDmnty80)
+	* [OpenZFS Remote Replication](https://www.youtube.com/watch?v=RQlMDmnty80) (part two of 'Overview' talk.
 
 Thank you for your attention, may you never need anything this guide helps prevent against. Please send details of any mistakes to *obrien.hugh* at the Google mail system.
