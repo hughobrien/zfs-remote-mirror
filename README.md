@@ -713,7 +713,7 @@ Extra Encryption
 ----------------
 If the thought of the decryption key for some sensitive data being automatically sent to a system outside of your immediate physical control concerns you, but you still want all the advantages of ZFS, you might consider adding an encrypted volume.
 
-This is a virtual storage device that we can layer GELI encryption on top of, using completely different key material but still stored in the ZFS pool such that it can be snapshotted, have only its changes transferred on backup and have the benefit of strong data integrity.
+This is a ZFS powered virtual storage device that we can layer GELI encryption on top of, using completely different key material but still stored in the ZFS pool such that it can be snapshotted, have only its changes transferred on backup and have the benefit of strong data integrity.
 
 	root@local# mkdir /wd/vol; chown hugh /wd/vol
 	root@local# zfs create -s -V 100G wd/vol
@@ -722,7 +722,7 @@ This is a virtual storage device that we can layer GELI encryption on top of, us
 	root@local# newfs -Ujn /dev/zvol/wd/vol.eli
 	root@local# mount /dev/zvol/wd/vol.eli /wd/vol
 
-I suppose you could use ZFS on the new volume, but that sounds like trouble, so let's keep to UFS.
+I suppose you could use ZFS instead of UFS on the new volume, if you have a [totem](https://www.google.ie/search?q=inception+totem&tbm=isch), but it's probably more trouble than it's worth.
 
 */wd/vol* is now available for secure storage. The *-s* flag to *zfs create* indicates a *sparse allocation*; the system won't reserve the full 100GiB and won't allocate any more data than you actually write to it. While 100GiB is the most it can hold, you can use ZFS properties to increase the volume size and then *growfs* if you ever hit that limit (*geli* may need to be informed of the resize too).
 
@@ -731,14 +731,12 @@ When you've finished using the encrypted drive, unmount it. Remember not to have
 	root@local# umount /wd/vol
 	root@local# geli detach /dev/zvol/wd/vol.eli
 
-The contents of the *vol* drive can be sent over *zfs send* much like a dataset, however it does involve its own flavour of *zfs send*, so you should consult the *man* page and add a function to the *backup.sh* script.
-
 To mount the volume for further use:
 
 	root@local# geli attach /dev/zvol/wd/vol
 	root@local# mount /dev/zvol/wd/vol.eli /wd/vol
 
-You may wish to define some shell functions (using *sudo*) to handle the attaching and detaching.
+You may wish to define some shell functions (using *sudo*) to handle the attaching and detaching. The contents of vol will be included in any snapshots and will be sent to the remote system during *zfs send*. I recommend having the volume unmounted and detached before snapshotting though.
 
 Disaster Recovery
 -----------------
