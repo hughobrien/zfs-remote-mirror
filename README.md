@@ -684,6 +684,8 @@ Once you're worked out your method, adjust your config file on your **local** ma
 		#HostName 192.168.1.23 # Local address for initial backup
 		#HostName http://idnxcnkne4qt76tg.onion/ # Tor hidden service
 
+	# Adjust the knox-fifo and knox-send entries also.
+
 Care & Feeding
 ==============
 Upkeep
