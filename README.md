@@ -433,7 +433,7 @@ Yup, it's a 4KiB drive. Now we'll generate the encryption key for the [GELI](htt
 	hugh@local$ dd if=/dev/random bs=1K count=1 > ~/.ssh/knox-geli-key
 	hugh@local$ chmod 600 ~/.ssh/knox-geli-key
 
-Strictly, we shouldn't store that in **~/.ssh**, but it's as good a place as any. You'll have noticed that we're not using any password with this key, and since we can't back it up to the backup system (egg, chicken, etc.) we'll need to store it somewhere else. But while we might be happy to have it lying around unencrypted on our local system, where we can reasonably control physical access, we're better off encrypting it for storage on Dropbox or in an email to yourself or wherever makes sense as we don't know who might have access to those systems (presume everyone). You could also stick it on an old USB flash drive and put it in your sock drawer if you know what an [NSL](https://en.wikipedia.org/wiki/National_security_letter) is.
+Strictly, we shouldn't store that in *~/.ssh*, but it's as good a place as any. You'll have noticed that we're not using any password with this key, and since we can't back it up to the backup system (egg, chicken, etc.) we'll need to store it somewhere else. But while we might be happy to have it lying around unencrypted on our local system, where we can reasonably control physical access, we're better off encrypting it for storage on Dropbox or in an email to yourself or wherever makes sense as we don't know who might have access to those systems (presume everyone). You could also stick it on an old USB flash drive and put it in your sock drawer if you know what an [NSL](https://en.wikipedia.org/wiki/National_security_letter) is.
 
 	hugh@local$ cd; tar -cf - .ssh | xz | openssl aes-128-cbc > key-backup.txz.aes
 
@@ -554,7 +554,7 @@ Let's add some shortnames for those keys in *~/.ssh/config*.
 
 Final Approach
 --------------
-I trust you're quite excited at this point. Let's take a fresh snapshot of our local pool and send it. This will involve sending the entire dataset initially, which is likely a lot of data and is the reason we specified a local network address in **~/.ssh/config**.
+I trust you're quite excited at this point. Let's take a fresh snapshot of our local pool and send it. This will involve sending the entire dataset initially, which is likely a lot of data and is the reason we specified a local network address in *~/.ssh/config*.
 
 	hugh@local$ snapname="$(date -u '+%FT%TZ')"
 	hugh@local$ zfs snapshot -r "wd@$snapname"
