@@ -588,7 +588,11 @@ To snapshot and send without previewing:
 
 	hugh@local$ ~/backup.sh snapback
 
-Do this once a day, week, whenever and your backups will always be fresh. Remember that ZFS snapshots are cheap (use *'zfs list -t snapshot'* to admire them) so feel free to make many.
+Do this once a day, week, whenever and your backups will always be fresh. Remember that ZFS snapshots are cheap (use *'zfs list -t snapshot'* to admire them) so feel free to make many. You might even consider adding it to your crontab:
+
+	hugh@local$ crontab -e
+
+	59	17	*	*	*	~/backup.sh snapback
 
 Note that the way we send the snapshots will remove any data on the remote pool that isn't on the local pool - so don't store anything there manually. Store it in the local pool and let it propagate automatically.
 
@@ -676,8 +680,8 @@ Once you're worked out your method, adjust your config file on your **local** ma
 
 	Host knox
 		User hugh
-		HostName backup.tld.cc # FQDN for Internet routing
-		#HostName 192.168.1.20 # Local address for initial backup
+		HostName knox.tld.cc # FQDN for Internet routing
+		#HostName 192.168.1.23 # Local address for initial backup
 		#HostName http://idnxcnkne4qt76tg.onion/ # Tor hidden service
 
 Care & Feeding
