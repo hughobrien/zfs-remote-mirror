@@ -43,7 +43,8 @@ Please note, that ZFS is designed for serious, enterprise grade environments. Us
 
 If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the bootscreen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this.
 
-**Note:** The current FreeBSD RaspberryPi images do not include the ZFS kernel modules by default. It's possible to [build your own images](https://wiki.freebsd.org/FreeBSD/arm/Raspberry%20Pi) however.
+**Note:** The current FreeBSD RaspberryPi images do not include the ZFS kernel modules by default. It's possible to [build your own images](https://wiki.freebsd.org/FreeBSD/arm/Raspberry%20Pi) however. I'm working on this and will post updates when I have something.
+
 Why not mirror the drives locally?
 ----------------------------------
 **Pros:**
