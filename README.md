@@ -244,6 +244,7 @@ We'll be editing several config files so I hope you know your *vi* keybindings. 
 	sendmail_outbound_enable="NO"
 	sendmail_msp_queue_enable="NO"
 	dumpdev="NO" # defaults to no on RELEASE but you may be on CURRENT
+	#syslogd_enable="NO" # I think syslog should stay on, but you may feel otherwise
 
 Let's have *ntpd* synchronise the clock before we proceed:
 
@@ -315,9 +316,9 @@ Now, **replace** the contents of */etc/ssh/sshd_config* with the following (the 
 
 	HostKey /etc/ssh/ssh_host_ed25519_key
 	TrustedUserCAKeys /root/.ssh/id_ed25519.pub
-	AllowUsers root hugh
+	AllowUsers hugh
 	PasswordAuthentication no
-	PermitRootLogin forced-commands-only
+	PermitRootLogin no
 	UseDNS no
 	UsePAM no
 	ChallengeResponseAuthentication no
@@ -387,7 +388,7 @@ The pkg system
 
 The blessed ones can run the following; you'll be prompted to install *pkg*.
 
-	root@knox# pkg update
+	root@knox# pkg upgrade
 
 Install [any other packages](https://www.freebsd.org/doc/handbook/ports-finding-applications.html) you like at this point.
 
@@ -511,7 +512,7 @@ ZFS datasets allow you to specify different attributes on different sets of data
 
 Plumbing
 ========
-Drop the following script into *root*'s home directory, call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
+Drop the following script into the *user's* home directory, call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
 
 	#!/bin/sh
 
@@ -522,7 +523,10 @@ Drop the following script into *root*'s home directory, call it *zfs-receive.sh*
 
 Then:
 
-	root@knox# chmod 700 /root/zfs-receive.sh
+	root@knox# chmod 4750 ~hugh/zfs-receive.sh
+
+This uses the *setuid* feature to allow users who have execute permission on the file (*root* and members of the *wheel* group) to execute the file with the permissions of the file owner, *root*, in this case. Think of it as a safe way of allowing certain users to run privileged commands.
+
 
 What's this you say? I promised that we wouldn't store the key on the backup server? [Behold!](https://en.wikipedia.org/wiki/Named_pipe)
 
@@ -535,7 +539,7 @@ These two keys are not password protected, but they are going to be completely r
 Now bless them. This will ask for the CA password.
 
 	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-fifo -O clear -O force-command="cd /tmp; mkfifo -m 600 k; cat - > k; rm k" -n hugh ~/.ssh/knox-fifo.pub
-	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="./zfs-receive.sh" -n root ~/.ssh/knox-send.pub
+	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="~/zfs-receive.sh" -n hugh ~/.ssh/knox-send.pub
 
 Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a [*fifo*](https://www.freebsd.org/cgi/man.cgi?query=mkfifo&sektion=1) on the */tmp* memory disk that we write to from *stdin*. This of course, will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next, as root. Upon reading the *fifo* the key is transferred directly from our local system to the *geli* process and never touches the disk, or the RAM disk.
 
@@ -549,7 +553,7 @@ Let's add some shortnames for those keys in *~/.ssh/config*.
 		IdentityFile ~/.ssh/knox-fifo
 
 	Host knox-send
-		User root
+		User hugh
 		HostName 192.168.1.23
 		IdentityFile ~/.ssh/knox-send
 
@@ -562,7 +566,11 @@ I trust you're quite excited at this point. Let's take a fresh snapshot of our l
 
 Snapshots will be given names of the form *'2015-07-24T16:14:10Z* ([ISO 8601 format)](https://en.wikipedia.org/wiki/ISO_8601). The time stamp is from UTC so it will probably be a few hours off from your local time. If you're convinced you'll never change timezone you could change this, but it's hardly an inconvenience.
 
-Drum roll please...
+Let's make sure your *local* user has the requisite permissions to use *zfs*:
+
+	root@local$ zfs allow-u hugh send,diff,snapshot,mount wd
+
+Back to user level, and drum roll please...
 
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ zfs send -Rev "wd@$snapname" | ssh knox-send
@@ -685,7 +693,7 @@ Once you're worked out your method, adjust your config file on your **local** ma
 		#HostName 192.168.1.23 # Local address for initial backup
 		#HostName http://idnxcnkne4qt76tg.onion/ # Tor hidden service
 
-	# Adjust the knox-fifo and knox-send entries also.
+	# Remember to adjust the knox-fifo and knox-send entries also.
 
 Care & Feeding
 ==============
@@ -694,7 +702,7 @@ Upkeep
 
 From time to time connect into the remote system and check the system logs and messages for anything suspicious. Also consider updating any installed packages and keeping up to date with the STABLE branch. *pkg* and *freebsd-update* make this easy.
 
-	root@knox# less +GF /var/log/messages
+	root@knox# less +G /var/log/messages
 	root@knox# pkg upgrade
 	root@knox# freebsd-update fetch; freebsd-update install
 
@@ -725,7 +733,7 @@ This is a ZFS powered virtual storage device that we can layer GELI encryption o
 	root@local# mkdir /wd/vol; chown hugh /wd/vol
 	root@local# zfs create -s -V 100G wd/vol
 	root@local# geli init -s 4096 /dev/zvol/wd/vol
-	root@local# geli attach /dev/zvol/wd/vol
+	root@local# geli attach -d /dev/zvol/wd/vol
 	root@local# newfs -Ujn /dev/zvol/wd/vol.eli
 	root@local# mount /dev/zvol/wd/vol.eli /wd/vol
 
@@ -733,17 +741,16 @@ I suppose you could use ZFS instead of UFS on the new volume, if you have a [tot
 
 */wd/vol* is now available for secure storage. The *-s* flag to *zfs create* indicates a *sparse allocation*; the system won't reserve the full 100GiB and won't allocate any more data than you actually write to it. While 100GiB is the most it can hold, you can use ZFS properties to increase the volume size and then *growfs* if you ever hit that limit (*geli* may need to be informed of the resize too).
 
-When you've finished using the encrypted drive, unmount it. Remember not to have any shells active in the directory or they'll hold it open.
+When you've finished using the encrypted drive, unmount it. Remember not to have any shells active in the directory or they'll hold it open. Since we attached it with the *-d* flag, *geli* will automatically detach it.
 
 	root@local# umount /wd/vol
-	root@local# geli detach /dev/zvol/wd/vol.eli
 
 To mount the volume for further use:
 
-	root@local# geli attach /dev/zvol/wd/vol
+	root@local# geli attach -d /dev/zvol/wd/vol
 	root@local# mount /dev/zvol/wd/vol.eli /wd/vol
 
-You may wish to define some shell functions (using *sudo*) to handle the attaching and detaching. The contents of vol will be included in any snapshots and will be sent to the remote system during *zfs send*. I recommend having the volume unmounted and detached before snapshotting though.
+You may wish to define some shell functions (using *sudo*, or scripts with *setuid*) to handle the repetitive attaching and detaching. The contents of vol will be included in any snapshots and will be sent to the remote system during *zfs send*. I recommend having the volume unmounted and detached before snapshotting though.
 
 Disaster Recovery
 -----------------
