@@ -235,14 +235,20 @@ We'll be editing several config files so I hope you know your *vi* keybindings. 
 	hostname="knox"
 	keymap="uk.iso.kbd" # delete this line for US keyboard layout
 	ifconfig_bfe0="DHCP" # the equivalent of this line may already be present
+
 	sshd_enable="YES"
 	ntpd_enable="YES" # keep the system regular
 	ntpd_sync_on_start="YES"
+
 	powerd_enable="YES" # keep power usage down
+	performance_cx_lowest="C2"
+	economy_cx_lowest="C2"
+
 	sendmail_enable="NO" # no need for sendmail
 	sendmail_submit_enable="NO"
 	sendmail_outbound_enable="NO"
 	sendmail_msp_queue_enable="NO"
+
 	dumpdev="NO" # defaults to no on RELEASE but you may be on CURRENT
 	#syslogd_enable="NO" # I think syslog should stay on, but you may feel otherwise
 
