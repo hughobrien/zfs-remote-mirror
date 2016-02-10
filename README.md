@@ -1,4 +1,4 @@
-ZFS Remote Mirrors for Home Use
+zFS Remote Mirrors for Home Use
 ===============================
 Why pay a nebulous cloud provider to store copies of our boring, but nice to have data? Old photographs, home videos, college papers, MP3s from Napster; let's just stick them somewhere and hope the storage doesn't rot.
 
@@ -532,7 +532,7 @@ Drop the following script into the *user's* home directory, call it *zfs-receive
 
 Then:
 
-	root@knox# chmod 4750 ~hugh/zfs-receive.sh
+	root@knox# chmod 4750 /home/hugh/zfs-receive.sh
 
 This uses the *setuid* feature to allow users who have execute permission on the file (*root* and members of the *wheel* group) to execute the file with the permissions of the file owner, *root*, in this case. Think of it as a safe way of allowing certain users to run privileged commands.
 
@@ -916,14 +916,14 @@ Just one last change, there's a DEFINE statement in the *opensolaris* code that 
 With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the RaspberryPi version of *uboot* installed, which will be automatically placed into the image.
 
 	root@local# pkg install u-boot-rpi
-	root@local# cd ~hugh/knox/crochet
+	root@local# cd /home/hugh/knox/crochet
 	root@local# ./crochet.sh -c config.sh
 
 This will take some time.
 
 Once it's finished, you'll have a 4GB image that's ready to be put on the SD card. But not so fast, we can do most of our post-installation configuration changes on the image itself, so that it boots up fully ready. To do this, we first mount the image as a memory device.
 
-	root@local# cd ~hugh/knox
+	root@local# cd /home/hugh/knox
 	root@local# mkdir -p img/dos img/ufs
 	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img # note the name this returns, it will probably be md0.
 	root@local# mount_msdosfs /dev/md0s1 img/dos
@@ -963,10 +963,11 @@ Now edit *img/ufs/etc/fstab*.
 	/dev/mmcsd0s2a  /               ufs rw,noatime          1 1
 	/dev/mmcsd0s3.eli       none    swap    sw      0       0
 	tmpfs   /tmp    tmpfs   rw,mode=1777    0       0
+	tmpfs   /var/tmp        tmpfs   rw      0       0
 	tmpfs   /var/run        tmpfs   rw      0       0
 	tmpfs   /var/log        tmpfs   rw      0       0
 
-The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks is easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
+The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks are easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
 
 Here's *img/ufs/etc/rc.conf*:
 
@@ -994,7 +995,7 @@ Transatlantic sorts may wish to change the keymap to 'us'. Details of these choi
 
 We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *img/ufs/etc/ttys* with an empty file:
 
-	root@local# echo > ~hugh/knox/img/ufs/etc/ttys
+	root@local# echo > /home/hugh/knox/img/ufs/etc/ttys
 
 Here's *img/ufs/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
@@ -1011,29 +1012,29 @@ Here's *img/ufs/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
 Remember to change the user. The last step is to place the fingerprint of the signing key you made way back up in the section about *sshd_config*
 
-	root@local# ssh-keygen -y -f ~/your-ca-key > ~hugh/knox/img/ufs/etc/ssh/knox-ca
+	root@local# ssh-keygen -y -f ~/your-ca-key > /home/hugh/knox/img/ufs/etc/ssh/knox-ca
 
 I lied, we should also add some entropy.
 
-	root@local# dd if=/dev/random of=~hugh/knox/img/ufs/entropy bs=4k count=1
-	root@local# chmod 600 ~hugh/knox/img/ufs/entropy
+	root@local# dd if=/dev/random of=/home/hugh/knox/img/ufs/entropy bs=4k count=1
+	root@local# chmod 600 /home/hugh/knox/img/ufs/entropy
 
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
 
-	root@local# umount ~hugh/knox/img/dos ~hugh/knox/img/ufs
-	root@local# dd if=~hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img of=/dev/mmcsd0 bs=1m
+	root@local# cd
+	root@local# umount /home/hugh/knox/img/dos /home/hugh/knox/img/ufs
+	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
+	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
-Put the SD card in your RPi, and boot it up. The first boot may be a little slow as it has to generate host SSH keys, but this is a one-time delay. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
+You can check the progress of the *dd* operation by typing <ctrl-t>. Put the SD card in your RPi, and boot it up. The first boot may be a little slow as it has to generate host SSH keys, but this is a one-time delay. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
 
 	hugh@local$ nmap -Pn -p ssh --open <your local network>/<your CIDR mask>  # probably 192.168.1.0/24
 
 Once you've found the new addition, connect in using a key signed by the *knox-ca* key. Then, go back to the start of this guide, filling in all the blanks. That wasn't so bad was it?
 
-One last thing, because ARMv6 isn't a Tier1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the infamous Ports tree make it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features -- the base system has everything that needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that a *portsnap* fetched ports tree is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
+One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the infamous Ports tree make it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features -- the base system has everything that needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that a *portsnap* fetched ports tree is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
-
-[TODO](todo)
+Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know! To use it:
