@@ -1,6 +1,6 @@
 ZFS Remote Mirrors for Home Use
 ===============================
-Update: Now with pre-build RaspberryPi image! Sections of the guide marked 'π' can be skipped if using the image.
+**Update: Now with pre-built ZFS RaspberryPi image! Sections of the guide marked 'π' can be skipped if using the image. Jump to the Appendix for more information.**
 
 Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
@@ -106,11 +106,11 @@ Other secrets like the passwords for the root and the user account are less impo
 
 That reads any strings that emerge from the noise of the PRNG, discards any not six characters long, and any containing whitespace or punctuation. After two such strings have been emitted it puts them together and *echo* ensures there's a newline at the end. We could just look for a single twelve character string matching our needs but that takes a while, those monkeys can only type so fast.
 
-For future reference, all the commands I show you are written to run on a FreeBSD system. GNU utilities often take different arguments so you might be able to translate with careful reference to the *man* pages. Also, I'll write the names of system components in *italics*. E.g. ZFS is the product, *zfs* is the command to control it.
+For future reference, all the commands I show you are written to run on a FreeBSD 10 system. GNU utilities often take different arguments so you might be able to translate with careful reference to the *man* pages. Also, I'll write the names of system components in *italics*. E.g. ZFS is the product, *zfs* is the command to control it.
 
 Server Setup
 ============
-OS Installation
+OS Installation π
 ---------------
 Step one, is of course, to install FreeBSD. If this sounds daunting to you, take a look at the excellent [Handbook](https://www.freebsd.org/doc/handbook/). There's different ways to do this based on what platform you're using but here's a run down of some answers to the questions the installer will ask you on an i386/amd64 target. **Do not** connect your USB drive yet.
 
@@ -142,7 +142,7 @@ Thankfully, the FreeBSD installer will choose all of the above tweaks by default
 
 Users
 -----
-The hash/pound/[octothorpe](https://en.wiktionary.org/wiki/octothorpe) symbol (*#*) at the start of a prompt indicates *root* permissions. When I use it in-line as below it's a comment that you should read but not type in. Some config files will treat it as a comment, others, like SSH, will treat it as an error. Terms in angle brackets (<like this>) refer to keys you should press, e.g [<enter>](https://en.wikipedia.org/wiki/Enter_key).
+The hash/pound/[octothorpe](https://en.wiktionary.org/wiki/octothorpe) symbol (**#**) at the start of a prompt indicates **root** permissions. When I use it in-line as below it's a comment that you should read but not type in. Some config files will treat it as a comment, others, like SSH, will treat it as an error. Terms in angle brackets refer to keys you should press.
 
 	# adduser
 
@@ -158,8 +158,8 @@ The hash/pound/[octothorpe](https://en.wiktionary.org/wiki/octothorpe) symbol (*
 	Use password-based authentication? [yes]: <enter>
 	Use an empty password? (yes/no) [no]: <enter>
 	Use a random password? (yes/no) [no]: <enter>
-	Enter password: <use the root password>
-	Enter password again: <reboot the system. No, I kid.>
+	Enter password: # use the root password
+	Enter password again: # reboot the system. No, I kid.
 	Lock out the account after creation? [no]: <enter>
 	...
 	...
@@ -167,8 +167,6 @@ The hash/pound/[octothorpe](https://en.wiktionary.org/wiki/octothorpe) symbol (*
 	adduser: INFO: Successfully added (hugh) to the user database.
 	Add another user? (yes/no): no
 	Goodbye!
-
-TODO: homogenise angle bracket usage>
 
 Yes, it's really that chatty, but look at [*man pw*](https://www.freebsd.org/cgi/man.cgi?pw(8)) to see what the alternative is. If you're wondering about the term *wheel* [here's an explanation](https://unix.stackexchange.com/questions/1262/where-did-the-wheel-group-get-its-name).
 
@@ -281,7 +279,7 @@ Be aware the using encrypted swap will prevent you from gathering automated cras
 
 /etc/ttys
 ---------
-TTY stands for *teletypewriter*, which is an early method for interacting with systems of the UNIX era. This file controls the allocation of virtual TTYs. Here's my copy, you'll note that it's a lot smaller than the system default. Tabs are in use again.
+TTY stands for 'teletypewriter', which is an early method for interacting with systems of the UNIX era. This file controls the allocation of virtual TTYs. Here's my copy, you'll note that it's a lot smaller than the system default. Tabs are in use again.
 
 	console none                            unknown off insecure
 	ttyv1   "/usr/libexec/getty Pc"         xterm   on  secure
@@ -761,8 +759,6 @@ You may wish to define some shell functions (using *sudo*, or scripts with *setu
 
 Disaster Recovery
 -----------------
-(*'Disaster'* is a strong word, and implies that real damage has been done, let's instead refer to these issues as *'difficulties'*.)
-
 One day, one of the following things will happen:
 
 * The motor in your USB drive will fail.
@@ -820,17 +816,17 @@ Of course, not everything is always rosy with a release, sometime minor bug fixe
 
 I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our RaspberryPi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
 
-* head -- no, too unstable.
-* stable/10 -- currently working towards 10.3, so not quite stable.
-* releng/10.2 -- the latest (at the time of writing) feature branch with all known errata applied.
-* releng/10.1 -- an older 10 feature branch, no reason to go back in time for this one.
-* releng/10.0 -- as above
-* stable/9 -- 9 isn't getting much love right now, but it's still supported.
-* releng/9.3 -- the last feature branch for 9, will still get errata fixes if necessary.
+* head - no, too unstable.
+* stable/10 - currently working towards 10.3, so not quite stable.
+* releng/10.2 - the latest (at the time of writing) feature branch with all known errata applied.
+* releng/10.1 - an older 10 feature branch, no reason to go back in time for this one.
+* releng/10.0 - as above
+* stable/9 - 9 isn't getting much love right now, but it's still supported.
+* releng/9.3 - the last feature branch for 9, will still get errata fixes if necessary.
 * ...
-* stable/8 -- 8 is no longer supported, but it's still there for all the world to see. The Pi wasn't supported at this point however.
+* stable/8 - 8 is no longer supported, but it's still there for all the world to see. The Pi wasn't supported at this point however.
 * ...
-* stable/2.2 -- FreeBSD is indeed old.
+* stable/2.2 - FreeBSD is indeed old.
 
 So, since we're building our own image, and compiling all our own code, we want the latest errata fixes from the latest feature branch. That's *releng/10.2*. Let's get the code. Depending on what version of FreeBSD you're currently running, you may already have an earlier version of this code in */usr/src*, but it's cleaner if we grab a fresh copy.
 
@@ -875,23 +871,23 @@ The *KERNCONF* is where the fun is. This is the specification of how to build th
 * Add 'opensolaris' and 'zfs' to the MODULES_EXTRA makeoptions, to trigger the build of ZFS.
 
 I've also removed the following modules, as I don't feel them necessary for this use case and as the RPi is so memory constrained, every byte helps. Some of these options are explained in more detail in the [Developer's Handbook](https://www.freebsd.org/doc/en/books/developers-handbook/kerneldebug-options.html).
-* INET6 -- Support for IPv6, you may want to leave this in.
-* SCTP -- Stream Control Transmission Protocol, like an optimised TCP, not much use here.
-* UFS_DIRHASH -- A speed/memory trade-off in the wrong direction for us.
-* QUOTA -- Quota supports not relevant as we're the only human user of this system.
-* NFSCL -- Network File System, no need for this at all.
-* NFSLOCKD -- As above.
-* NFS_ROOT -- As above.
-* KTRACE -- Kernel debugging, not needed unless you're developing on this system.
-* KBD_INSTALL_CDEV -- This system won't have a keyboard (KBD) so not necessary.
-* BREAK_TO_DEBUGGER -- For developers.
-* ALT_BREAK_TO_DEBUGGER -- For developers.
-* KDB -- Debugging.
-* DDB -- Debugging.
-* INVARIANTS -- Kernel self-tests, they'll slow us down on an already slow system.
-* INVARIANT_SUPPORT -- As above.
-* gpioled -- Driver to control [PWM](https://en.wikipedia.org/wiki/Pulse-width_modulation) on the RPi LEDs, not for us.
-* makeoptions DEBUG=-g -- Don't build debug symbols, again, we're not developing on this.
+* INET6 - Support for IPv6, you may want to leave this in.
+* SCTP - Stream Control Transmission Protocol, like an optimised TCP, not much use here.
+* UFS_DIRHASH - A speed/memory trade-off in the wrong direction for us.
+* QUOTA - Quota supports not relevant as we're the only human user of this system.
+* NFSCL - Network File System, no need for this at all.
+* NFSLOCKD - As above.
+* NFS_ROOT - As above.
+* KTRACE - Kernel debugging, not needed unless you're developing on this system.
+* KBD_INSTALL_CDEV - This system won't have a keyboard (KBD) so not necessary.
+* BREAK_TO_DEBUGGER - For developers.
+* ALT_BREAK_TO_DEBUGGER - For developers.
+* KDB - Debugging.
+* DDB - Debugging.
+* INVARIANTS - Kernel self-tests, they'll slow us down on an already slow system.
+* INVARIANT_SUPPORT - As above.
+* gpioled - Driver to control [PWM](https://en.wikipedia.org/wiki/Pulse-width_modulation) on the RPi LEDs, not for us.
+* makeoptions DEBUG=-g - Don't build debug symbols, again, we're not developing on this.
 
 This is, of course, somewhat cumbersome to do manually, so you can grab the config file directly from here:
 
@@ -1028,7 +1024,7 @@ You can check the progress of the *dd* operation by typing <ctrl-t>. Put the SD 
 
 Once you've found the new addition, connect in using a key signed by the *knox-ca* key. Then, go back to the start of this guide, filling in all the blanks. That wasn't so bad was it?
 
-One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the infamous Ports tree make it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features -- the base system has everything that needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that a *portsnap* fetched ports tree is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
+One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the infamous Ports tree make it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything that needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that a *portsnap* fetched ports tree is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
