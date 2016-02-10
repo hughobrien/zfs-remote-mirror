@@ -848,16 +848,19 @@ If it succeeds, you'll get a message similar to:
 
 	Checked out revision 295446
 
-Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all of the hard work for us. The package is maintained on GitHub, which is a little unusual for FreeBSD. If you have *git*, or indeed *git-lite* installed on your system you can get the code with:
+Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all the hard work of image building for us. The package is maintained on GitHub, which is a little unusual for FreeBSD. If you have *git*, or indeed *git-lite* installed on your system you can get the code with:
+
 	hugh@local$ git clone https://github.com/freebsd/crochet.git
 
 If you don't have git, GitHub provide zipped archives:
+
 	hugh@local$ fetch https://github.com/freebsd/crochet/archive/master.zip
 	hugh@local$ unzip master.zip
 	hugh@local$ mv crochet-master crochet
 	hugh@local$ cd crochet
 
 Crochet operates around a central build script, called *config.sh*. There's a sample file in this directory, which I recommend you take a look at, but for expediency, simply create a new file in this directory called config.sh with the following contents:
+
 	board_setup RaspberryPi
 	option ImageSize 3900mb # for 4 Gigabyte card
 	option User hugh
@@ -892,10 +895,12 @@ I've also removed the following modules, as I don't feel them necessary for this
 * makeoptions DEBUG=-g -- Don't build debug symbols, again, we're not developing on this.
 
 This is, of course, somewhat cumbersome to do manually, so you can grab the config file directly from here:
+
 	hugh@$local$ cd ~/knox/src/sys/arm/conf
 	hugh@$local$ fetch githubfilelink TODO
 
 Verify that I'm not sneaking anything in with the following command:
+
 	hugh@local$ diff --side-by-side --suppress-common-lines RPI-B RPI-B-ZFS
 
 One last tweak to make to crochet before we kick off the build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards. We could simply not use any swap, but as the RPi is so memory constrained it seems like a prudent precaution.
@@ -908,6 +913,7 @@ Just one last change, there's a DEFINE statement in the opensolaris code that ca
 Patch files describing all of these modifications are in the *patch* directory if necessary. TODO do this.
 
 With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the RaspberryPi version of *uboot* installed, which will be automatically placed into the image.
+
 	root@local# pkg install u-boot-rpi
 	root@local# cd ~hugh/knox/crochet
 	root@local# ./crochet.sh -c config.sh
@@ -922,6 +928,7 @@ Once it's finished, you'll have a 4GB image that's ready to be put on the SD car
 	root@local# mount /dev/md0s2a img/ufs
 
 Both the boot and the system partition are now mounted. *u-boot-rpi* includes the necessary firmware files to boot the RPi, but the RaspberryPi Foundation often put out new releases. We can easily grab these and insert them into the image.
+
 	root@local# cd img/dos
 	root@local# for file in fixup.dat fixup_cd.dat start.elf start_cd.elf bootcode.bin; do fetch https://github.com/raspberrypi/firmware/raw/master/boot/$file; done
 
@@ -940,6 +947,7 @@ Next, replace the contents of *config.txt* with the following:
 This file is fully described [here](http://elinux.org/RPiconfig) and [here](https://www.raspberrypi.org/documentation/configuration/config-txt.md). In essence, we're specifying that the on-board GPU should only get 32MB of the shared 512MB of memory, and we're upping the frequencies of the main components just a little bit. This gives us a little performance boost, while still remaining quite conservative.
 
 Now for some FreeBSD specific changes. Edit/create the *img/ufs/boot/loader.conf* file, and set it to:
+
 	zfs_load="YES"
 	vm.kmem_size="180M"
 	vm.kmem_size_max="180M"
@@ -948,6 +956,7 @@ Now for some FreeBSD specific changes. Edit/create the *img/ufs/boot/loader.conf
 This causes the ZFS module to load, sets the kernel memory size at a hard 180MB, which should be large enough for ZFS's needs, and restricts the size of the [ARC](https://en.wikipedia.org/wiki/Adaptive_replacement_cache), leaving more of that 180MB for the meat of ZFS.
 
 Now edit *img/ufs/etc/fstab*.
+
 	/dev/mmcsd0s1   /boot/msdos     msdosfs rw,noatime      0 0
 	/dev/mmcsd0s2a  /               ufs rw,noatime          1 1
 	/dev/mmcsd0s3.eli       none    swap    sw      0       0
@@ -958,6 +967,7 @@ Now edit *img/ufs/etc/fstab*.
 The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. We've also added a swap partition of about 900MB and unlike the kernel, the contents of these memory disks is easily swapped out, so we're not likely to hit memory issues. A good trade off I think.
 
 Here's *img/ufs/etc/rc.conf*:
+
 	hostname="knox"
 	keymap="uk"
 	ifconfig_ue0="DHCP"
@@ -981,9 +991,11 @@ Here's *img/ufs/etc/rc.conf*:
 Transatlantic sorts may wish to change the keymap to 'us'. Details of these choices are presented further up in this document, the only difference being that I also disable cron here.
 
 We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *img/ufs/etc/ttys* with an empty file:
+
 	root@local# echo > img/ufs/etc/ttys
 
 Here's *img/ufs/etc/ssh/sshd_config*:
+
 	HostKey /etc/ssh/ssh_host_ed25519_key
 	TrustedUserCAKeys /etc/ssh/knox-ca
 	AllowUsers hugh
@@ -996,14 +1008,17 @@ Here's *img/ufs/etc/ssh/sshd_config*:
 	Ciphers chacha20-poly1305@openssh.com
 
 Remember to change the user. The last step is to place the fingerprint of the signing key you made way back up in the section about *sshd_config*
+
 	root@local# ssh-keygen -y -f ~/your-ca-key > img/etc/ssh/knox-ca
 
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
+
 	root@local# umount img/dos img/ufs
 	root@local# dd if=image of=/dev/mmcsd0 bs=1M TODO
 	root@local# sync
 
 Put the SD card in your RPi, boot it up. The first boot may be a little slow as it generates host SSH keys, but this is a one-time delay. We'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
+
 	hugh@local$ nmap -Pn -p ssh --open <your local network>/<your CIDR mask>  # probably 192.168.1.0/24
 
 Once you've found the new addition, connect in using a key signed by the *knox-ca* key. Then, go back to the start of this guide, filling in all the blanks. That wasn't so bad was it?
