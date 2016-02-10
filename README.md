@@ -1012,6 +1012,11 @@ Remember to change the user. The last step is to place the fingerprint of the si
 
 	root@local# ssh-keygen -y -f ~/your-ca-key > ~hugh/knox/img/ufs/etc/ssh/knox-ca
 
+I lied, we should also add some entropy.
+
+	root@local# dd if=/dev/random of=~hugh/knox/img/ufs/entropy bs=4k count=1
+	root@local# chmod 600 ~hugh/knox/img/ufs/entropy
+
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
 
 	root@local# umount ~hugh/knox/img/dos ~hugh/knox/img/ufs
