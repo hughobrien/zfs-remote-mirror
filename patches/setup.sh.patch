@@ -1,0 +1,10 @@
+--- setup.sh	2016-02-10 10:19:58.159262000 +0000
++++ /home/hugh/knox/crochet/board/RaspberryPi/setup.sh	2016-02-10 10:09:04.606991000 +0000
+@@ -40,6 +40,7 @@
+     disk_partition_mbr
+     # Raspberry Pi boot loaders require FAT16, so this must be at least 17m
+     disk_fat_create 17m 16
++    disk_ufs_create 3000m
+     disk_ufs_create
+ }
+ 
