@@ -1,12 +1,14 @@
 ZFS Remote Mirrors for Home Use
 ===============================
-Why pay a nebulous cloud provider to store copies of our boring, but nice to have data? Old photographs, home videos, college papers, MP3s from Napster; let's just stick them somewhere and hope the storage doesn't rot.
+Update: Now with pre-build RaspberryPi image! Sections of the guide marked 'π' can be skipped if using the image.
 
-We can do better. Magnetic storage is cheap; and our data is valuable. We don't need live synchronisation, cloud scaling, SLAs, NSAs, terms of service, lock-ins, buy-outs, up-sells, shut-downs, DoSs, fail whales, pay-us-or-we'll-deletes, or any of the noise that comes with using someone else's infrastructure. We'd just like a big old drive that we can backup to, reliably, easily, and privately.
+Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
-How about an automatic, remote, encrypted, verifiable, incremental backup of all your data, for about 100 currency units in outlay, less if you have existing hardware, and no upkeep costs?
+But we can do better. Magnetic storage is cheap; and our data is valuable. We don't need live synchronisation, cloud scaling, SLAs, NSAs, terms of service, lock-ins, buy-outs, up-sells, shut-downs, DoSs, fail whales, pay-us-or-we'll-deletes, or any of the noise that comes with using someone else's infrastructure. We'd just like a big drive that we can backup to, reliably, easily, and privately.
 
-* Computer hardware is cheap, an old laptop or a [SoC board](https://en.wikipedia.org/wiki/Single-board_computer) is more than sufficient.
+How about an automatic, remote, encrypted, verifiable, incremental backup of all your data, for about 100 currency units in outlay, less if you have existing hardware, and no upkeep costs? How?
+
+* Computer hardware is cheap, an old laptop or a [SBC](https://en.wikipedia.org/wiki/Single-board_computer) is more than sufficient.
 * USB external storage is [laughably inexpensive](http://www.amazon.co.uk/s/keywords=external+hard+drive&ie=UTF8) ([35USD/TB](https://en.wikipedia.org/wiki/List_of_Storage_hierarchy_media_with_costs)).
 * Parents/Friends will allow you to keep the system in their homes.
 * Enterprise grade [security](https://en.wikipedia.org/wiki/OpenSSH) and [storage](https://en.wikipedia.org/wiki/ZFS) features are available in [free operating systems](https://en.wikipedia.org/wiki/FreeBSD).
@@ -20,30 +22,26 @@ You can have:
 * A minimalistic, locked down, low-power remote server requiring almost no maintenance.
 * All wrapped up as a single command, powered entirely by tools in the FreeBSD base system.
 
-Alternatively, if you're not currently enjoying the benefits of ZFS, you could take this opportunity to set up a low cost home storage server. You'll need two of each component as described below. If you're anything like me you probably have files scattered across dozens of devices and it's actually quite nice to consolidate them in an easily accessible and safe place.
-
 You will need:
 --------------
-* A FreeBSD 10.1 (or later) [supported](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html) system, such as:
+* A FreeBSD 10.2 (or later) [supported](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html) system, such as:
  * A [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi), [BeagleBoard](https://en.wikipedia.org/wiki/BeagleBoard) or another [FreeBSD ARM target](https://www.freebsd.org/platforms/arm.html), use a 4GB+ SD Card.
  * An old laptop, with around 512MB of memory, preferably something quiet.
 * A USB Hard Drive.
- * If using an SoC system, a drive that comes with its own power supply is useful.
+ * If using an SBC, a drive that comes with its own power supply is useful.
  * If using an old laptop, a drive powered directly by USB is probably better.
 * An Ethernet Internet connection in a location that is not your home.
- * Do not use Wi-Fi. Frustration abounds.
+ * Do not even consider Wi-Fi. Frustration abounds.
 * The ability to reach the system from the outside world. Potentially via:
  * [Port forwarding](http://portforward.com/) (most likely).
  * IPv6.
  * Overlay routing ([Tor](https://en.wikipedia.org/wiki/Tor_(anonymity_network)), [I2P](https://en.wikipedia.org/wiki/I2P), [cjdns](https://en.wikipedia.org/wiki/Cjdns)).
 
-I'm specifying a laptop as it's a lot more palatable a device to ask someone to let you keep in their home. You can of course use a desktop if you have sufficient charm.
+I'm specifying a laptop/SBC as it's a lot more palatable a device to ask someone to let you keep in their home. You can of course use a desktop if you have sufficient charm.
 
 Please note, that ZFS is designed for serious, enterprise grade environments. Using it on older consumer hardware is doing an injustice to its many features, and the kernel will remind you of this on every boot. That said, it can be squeezed into this restricted use case, and you can have many of the benefits most important to a backup system. However, if you can supply more modern hardware, do. A system with ECC memory would be a wise investment also. Even if it is an older model.
 
-If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the boot-screen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this.
-
-**Note:** The current FreeBSD RaspberryPi images do not include the ZFS kernel modules by default. It's possible to [build your own images](https://wiki.freebsd.org/FreeBSD/arm/Raspberry%20Pi) however. I'm working on this and will post updates when I have something.
+If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the boot-screen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this. (I don't currently know of an easy way to test the memory on a SBC system.)
 
 Why not mirror the drives locally?
 ----------------------------------
@@ -292,13 +290,13 @@ This disables all but one of the virtual consoles, leaving ttyv1, not v0 as the 
 
 /boot/loader.conf
 -----------------
-I like this one, it controls the environment the kernel loads into. It's a mix of some power control options and ZFS tuning parameters that should improve performance and stability on low memory systems. ZFS is very fond of memory, and runs in the kernel address space, so by limiting it we avoid some nasty memory conditions. The values here are for a 512MB system, if you have more memory than that you might consider increasing them after researching what they do, but they'll work for now. You should probably omit the two *hint* lines on SoC systems, though they're likely harmless. Some deeper info on ZFS tuning is available [here](https://wiki.freebsd.org/ZFSTuningGuide).
+I like this one, it controls the environment the kernel loads into. It's a mix of some power control options and ZFS tuning parameters that should improve performance and stability on low memory systems. ZFS is very fond of memory, and runs in the kernel address space, so by limiting it we avoid some nasty memory conditions. The values here are for a 512MB system, if you have more memory than that you might consider increasing them after researching what they do, but they'll work for now. You should probably omit the two *hint* lines on SBC systems, though they're likely harmless. Some deeper info on ZFS tuning is available [here](https://wiki.freebsd.org/ZFSTuningGuide).
 
 Note that this file isn't present by default.
 
 	autoboot_delay=3 # speed up booting
 	hint.p4tcc.0.disabled=1 # use only modern CPU throttling (x86 only)
-	hint.acpi_throttle.0.disabled=1 # does your SoC use ACPI? RPi doesn't.
+	hint.acpi_throttle.0.disabled=1 # does your SBC use ACPI? RPi doesn't.
 	zfs_load="YES"
 	geom_eli_load="YES"
 	vm.kmem_size="150M" # limit the kernel's memory usage
@@ -413,7 +411,7 @@ You may, for instance, see:
 
 	Aug  2 00:53:21 knox root: /etc/rc: WARNING: failed to start powerd
 
-Which tells us that for whatever reason, *powerd* isn't able to function on this machine. SoCs may show this, as will VMs. If you see it, remove the *powerd* line from */etc/rc.conf*
+Which tells us that for whatever reason, *powerd* isn't able to function on this machine. SBCs may show this, as will VMs. If you see it, remove the *powerd* line from */etc/rc.conf*
 
 Be aware, that if you want to login to the machine physically, instead of via SSH, you must switch to the second console with \<Alt-F2\>. \<Alt-F1\> will return you to the kernel messages screen.
 
@@ -804,7 +802,7 @@ Thank you for your attention, may you never need anything this guide helps preve
 Appendix - Raspberry Pi
 =======================
 
-With some work, it's possible to use a [Raspberry Pi Model B](https://www.raspberrypi.org/products/model-b/), and likely any other supported SoC, as the remote system. I'll take you through how to prepare a system image for this, but for more trusting readers I'll provide a pre-made image file.
+With some work, it's possible to use a [Raspberry Pi Model B](https://www.raspberrypi.org/products/model-b/), and likely any other supported SBC, as the remote system. I'll take you through how to prepare a system image for this, but for more trusting readers I'll provide a pre-made image file.
 
 The basic process is:
 * Download the source for our chosen branch.
@@ -846,7 +844,7 @@ This checkout process will take some time. On my system the process will occasio
 
 If it succeeds, you'll get a message similar to:
 
-	Checked out revision 295446
+	Checked out revision 295483
 
 Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all the hard work of image building for us. The package is maintained on GitHub, which is a little unusual for FreeBSD. If you have *git*, or indeed *git-lite* installed on your system you can get the code with:
 
@@ -925,7 +923,7 @@ Once it's finished, you'll have a 4GB image that's ready to be put on the SD car
 
 	root@local# cd /home/hugh/knox
 	root@local# mkdir -p img/dos img/ufs
-	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img # note the name this returns, it will probably be md0.
+	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img # note the name this returns, it will probably be md0.
 	root@local# mount_msdosfs /dev/md0s1 img/dos
 	root@local# mount /dev/md0s2a img/ufs
 
@@ -1021,7 +1019,7 @@ All done. Let's unmount and write the image. Insert the SD card into your system
 	root@local# cd
 	root@local# umount /home/hugh/knox/img/dos /home/hugh/knox/img/ufs
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
-	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img of=/dev/mmcsd0 bs=1m
+	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
 You can check the progress of the *dd* operation by typing <ctrl-t>. Put the SD card in your RPi, and boot it up. The first boot may be a little slow as it has to generate host SSH keys, but this is a one-time delay. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
@@ -1034,8 +1032,8 @@ One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren'
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://github.com/hughobrien/zfs-remote-mirror/raw/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://github.com/hughobrien/zfs-remote-mirror/raw/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
 
 Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
-	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz
-	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz) = 5cdd85a03c1d5475ce72fc20b9623f50936b72ab61a614524385a11f07705622
+	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
+	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 5cdd85a03c1d5475ce72fc20b9623f50936b72ab61a614524385a11f07705622 TODO update
