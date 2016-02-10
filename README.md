@@ -41,7 +41,7 @@ I'm specifying a laptop as it's a lot more palatable a device to ask someone to 
 
 Please note, that ZFS is designed for serious, enterprise grade environments. Using it on older consumer hardware is doing an injustice to its many features, and the kernel will remind you of this on every boot. That said, it can be squeezed into this restricted use case, and you can have many of the benefits most important to a backup system. However, if you can supply more modern hardware, do. A system with ECC memory would be a wise investment also. Even if it is an older model.
 
-If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the bootscreen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this.
+If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the boot-screen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this.
 
 **Note:** The current FreeBSD RaspberryPi images do not include the ZFS kernel modules by default. It's possible to [build your own images](https://wiki.freebsd.org/FreeBSD/arm/Raspberry%20Pi) however. I'm working on this and will post updates when I have something.
 
@@ -190,7 +190,7 @@ Now we need to discover what IP address the DHCP server leased to the system. Ig
 
 With this in hand we can SSH into the machine; *sshd* will generate some host keys automatically at this point, but before we let that happen, let's shake that odd feeling we both have that there hasn't been enough entropy in this baby-faced system yet to yield secure random numbers.
 
-	# dd if=/dev/random of=/dev/null bs=1M count=512
+	# dd if=/dev/random of=/dev/null bs=1m count=512
 
 Now we haven't really added entropy of course, but at least we're far enough down the PRNG stream to be hard to predict. Use a different count value if you like.
 
@@ -232,7 +232,7 @@ Use *su* to get a root shell.
 	hugh@knox$ su
 	root@knox#
 
-We'll be editing several config files so I hope you know your *vi* keybindings. If not, there's *ee*, which feels like a tricycle after *vi*, but I digress. **Replace** */etc/rc.conf* with the following. You'll have to supply your own network adapter name gleaned from *ifconfig*.
+We'll be editing several config files so I hope you know your *vi* key-bindings. If not, there's *ee*, which feels like a tricycle after *vi*, but I digress. **Replace** */etc/rc.conf* with the following. You'll have to supply your own network adapter name gleaned from *ifconfig*.
 
 	hostname="knox"
 	keymap="uk" # delete this line for US keyboard layout
@@ -267,7 +267,7 @@ Let's have *ntpd* synchronise the clock before we proceed:
 
 /etc/fstab
 ---------
-This is the file system tab, which used to be a listing of all the filesystems the kernel should mount at boot time, but is fading a little in importance these days with removable devices and ZFS. It's not obsolete yet though. Here's the contents of mine, note that the fields are separated by tabs, which is why that zero looks so lonesome.
+This is the file system tab, which used to be a listing of all the file-systems the kernel should mount at boot time, but is fading a little in importance these days with removable devices and ZFS. It's not obsolete yet though. Here's the contents of mine, note that the fields are separated by tabs, which is why that zero looks so lonesome.
 
 	# Device        Mountpoint      FStype  Options Dump    Pass#
 	/dev/ada0p2     /               ufs     rw      1       1
@@ -354,7 +354,7 @@ Sign the key. The *-I* flag is just a comment.
 
 	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-shell -n hugh ~/.ssh/knox-shell.pub
 
-Now we tell *ssh* to use this key when connecting to *knox*. We can add some fancyness while we're at it. Edit your *~/.ssh/config*:
+Now we tell *ssh* to use this key when connecting to *knox*. We can add some fanciness while we're at it. Edit your *~/.ssh/config*:
 
 	HashKnownHosts yes
 	ControlMaster auto
@@ -367,7 +367,7 @@ Now we tell *ssh* to use this key when connecting to *knox*. We can add some fan
 		HostKeyAlgorithms ssh-ed25519
 		IdentityFile ~/.ssh/knox-shell
 
-The *Control* settings allow us to reuse connections which greatly speeds things up. Now that the key has its bona fides (the *knox-shell-cert.pub* file), we should unlock it and use it to login.
+The *Control* settings allow us to reuse connections which greatly speeds things up. Now that the key has its bona-fides (the *knox-shell-cert.pub* file), we should unlock it and use it to login.
 
 	hugh@local$ ssh-add ~/.ssh/knox-shell
 	hugh@local$ ssh knox
@@ -441,7 +441,7 @@ We should also work out what sector size the drive is using, though in all likel
 Yup, it's a 4KiB drive. Now we'll generate the encryption key for the [GELI](https://www.freebsd.org/cgi/man.cgi?geli(8)) full disk encryption (**locally**). The brackets in the below command are significant, they limit the duration of the *umask* change.
 
 	hugh@local$ (umask 177; touch ~/.ssh/knox-geli-key)
-	hugh@local$ dd if=/dev/random bs=1K count=1 > ~/.ssh/knox-geli-key
+	hugh@local$ dd if=/dev/random bs=1k count=1 > ~/.ssh/knox-geli-key
 	hugh@local$ chmod 600 ~/.ssh/knox-geli-key
 
 Strictly, we shouldn't store that in *~/.ssh*, but it's as good a place as any. You'll have noticed that we're not using any password with this key, and since we can't back it up to the backup system (egg, chicken, etc.) we'll need to store it somewhere else. But while we might be happy to have it lying around unencrypted on our local system, where we can reasonably control physical access, we're better off encrypting it for storage on Dropbox or in an email to yourself or wherever makes sense as we don't know who might have access to those systems (presume everyone). You could also stick it on an old USB flash drive and put it in your sock drawer if you know what an [NSL](https://en.wikipedia.org/wiki/National_security_letter) is.
@@ -455,7 +455,7 @@ Make sure you use a good password (maybe the same as you use for your login) and
 
 (*tar* can automatically decompress). Let's get a quick measurement on the drive's normal speed before we activate the encryption.
 
-	root@knox# dd if=/dev/zero of=/dev/da0 bs=1M count=100
+	root@knox# dd if=/dev/zero of=/dev/da0 bs=1m count=100
 	..
 	104857600 bytes transferred in 15.057181 secs (6963960 bytes/sec)
 
@@ -472,7 +472,7 @@ The other *geli* option of note is the sector size. By forcing *geli* to use 4Ki
 
 Let's see how this encryption has affected our drive's speed:
 
-	root@knox# dd if=/dev/zero of=/dev/da0.eli bs=1M count=100
+	root@knox# dd if=/dev/zero of=/dev/da0.eli bs=1m count=100
 	..
 	104857600 bytes transferred in 17.759175 secs (5904418 bytes/sec)
 
@@ -804,7 +804,7 @@ Thank you for your attention, may you never need anything this guide helps preve
 Appendix - Raspberry Pi
 =======================
 
-With some work, it's possible to use a [Raspberry Pi Model B](https://www.raspberrypi.org/products/model-b/) as the remote system. I'll take you through how to prepare a system image for this, but for more trusting readers I'll provide a pre-made image file.
+With some work, it's possible to use a [Raspberry Pi Model B](https://www.raspberrypi.org/products/model-b/), and likely any other supported SoC, as the remote system. I'll take you through how to prepare a system image for this, but for more trusting readers I'll provide a pre-made image file.
 
 The basic process is:
 * Download the source for our chosen branch.
@@ -820,7 +820,7 @@ The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng
 
 Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, to get them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
 
-I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our RasberryPi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
+I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our RaspberryPi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
 
 * head -- no, too unstable.
 * stable/10 -- currently working towards 10.3, so not quite stable.
@@ -868,7 +868,7 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 	KERNCONF=RPI-B-ZFS
 	FREEBSD_SRC=/home/hugh/knox/src
 
-Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad-sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of GigaBytes on your card.
+Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad-sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
 
 The *KERNCONF* is where the fun is. This is the specification of how to build the kernel for the RaspberryPi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
 
@@ -909,7 +909,7 @@ There's one tweak to make to crochet before we build. Since we're being so secur
 To make it easy to enable encrypted swap, we're going to direct crochet to create an extra partition in the image. Edit the file *~/knox/crochet/board/RaspberryPi/setup.sh* and find the function *raspberry_pi_partition_image ( )*.
 Above the line *disk_ufs_create* add *disk_ufs_create 3000m*. [Here's a patch showing the change](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/setup.sh.patch).
 
-If you're using a card size other than 4GB you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 900MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
+If you're using a card size other than 4GB you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 700MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
 
 Just one last change, there's a DEFINE statement in the *opensolaris* code that causes some build issues, thankfully it's not needed so we can simply delete it. Edit the file *~/knox/src/sys/cddl/compat/opensolaris/sys/cpuvar.h* and delete the line *#define>cpu_id>-cpuid*, it's on line 50 of the file at the time of writing. [Here's the patch](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/cpuvar.h.patch).
 
@@ -923,14 +923,15 @@ This will take some time.
 
 Once it's finished, you'll have a 4GB image that's ready to be put on the SD card. But not so fast, we can do most of our post-installation configuration changes on the image itself, so that it boots up fully ready. To do this, we first mount the image as a memory device.
 
-	hugh@local$ mkdir -p ~/knox/img/dos ~/knox/img/ufs
-	root@local# mdconfig -f FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img # note the name this returns, it will probably be md0.
-	root@local# mount_msdosfs /dev/md0s1 ~hugh/knox/img/dos
-	root@local# mount /dev/md0s2a ~hugh/knox/img/ufs
+	root@local# cd ~hugh/knox
+	root@local# mkdir -p img/dos img/ufs
+	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img # note the name this returns, it will probably be md0.
+	root@local# mount_msdosfs /dev/md0s1 img/dos
+	root@local# mount /dev/md0s2a img/ufs
 
 Both the boot and the system partition are now mounted. *u-boot-rpi* includes the necessary firmware files to boot the RPi, but the RaspberryPi Foundation often put out new releases. We can easily grab these and insert them into the image.
 
-	root@local# cd ~hugh/knox/img/dos
+	root@local# cd img/dos
 	root@local# sh -c 'for file in fixup.dat fixup_cd.dat start.elf start_cd.elf bootcode.bin; do fetch https://github.com/raspberrypi/firmware/raw/master/boot/$file; done'
 
 Next, replace the contents of *config.txt* with the following:
@@ -965,7 +966,7 @@ Now edit *img/ufs/etc/fstab*.
 	tmpfs   /var/run        tmpfs   rw      0       0
 	tmpfs   /var/log        tmpfs   rw      0       0
 
-The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 900MB, the contents of these memory disks is easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
+The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks is easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
 
 Here's *img/ufs/etc/rc.conf*:
 
@@ -1020,7 +1021,7 @@ I lied, we should also add some entropy.
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
 
 	root@local# umount ~hugh/knox/img/dos ~hugh/knox/img/ufs
-	root@local# dd if=~hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img of=/dev/mmcsd0 bs=1M
+	root@local# dd if=~hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
 Put the SD card in your RPi, and boot it up. The first boot may be a little slow as it has to generate host SSH keys, but this is a one-time delay. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
@@ -1033,6 +1034,6 @@ One last thing, because ARMv6 isn't a Tier1 supported architecture, there aren't
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-...Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
 
-Hugh O'Brien 2016
+[TODO](todo)
