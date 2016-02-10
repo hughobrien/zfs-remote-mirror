@@ -923,15 +923,15 @@ This will take some time.
 
 Once it's finished, you'll have a 4GB image that's ready to be put on the SD card. But not so fast, we can do most of our post-installation configuration changes on the image itself, so that it boots up fully ready. To do this, we first mount the image as a memory device.
 
-	hugh@local$ mkdir -p img/dos img/ufs
-	root@local# mdconfig -f FILENAME # note the name this returns, it will probably be md0. TODO
-	root@local# mount_msdosfs /dev/md0s1 img/dos
-	root@local# mount /dev/md0s2a img/ufs
+	hugh@local$ mkdir -p ~/knox/img/dos ~/knox/img/ufs
+	root@local# mdconfig -f FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img # note the name this returns, it will probably be md0.
+	root@local# mount_msdosfs /dev/md0s1 ~hugh/knox/img/dos
+	root@local# mount /dev/md0s2a ~hugh/knox/img/ufs
 
 Both the boot and the system partition are now mounted. *u-boot-rpi* includes the necessary firmware files to boot the RPi, but the RaspberryPi Foundation often put out new releases. We can easily grab these and insert them into the image.
 
-	root@local# cd img/dos
-	root@local# for file in fixup.dat fixup_cd.dat start.elf start_cd.elf bootcode.bin; do fetch https://github.com/raspberrypi/firmware/raw/master/boot/$file; done
+	root@local# cd ~hugh/knox/img/dos
+	root@local# sh -c 'for file in fixup.dat fixup_cd.dat start.elf start_cd.elf bootcode.bin; do fetch https://github.com/raspberrypi/firmware/raw/master/boot/$file; done'
 
 Next, replace the contents of *config.txt* with the following:
 
@@ -947,14 +947,14 @@ Next, replace the contents of *config.txt* with the following:
 
 This file is fully described [here](http://elinux.org/RPiconfig) and [here](https://www.raspberrypi.org/documentation/configuration/config-txt.md). In essence, we're specifying that the on-board GPU should only get 32MB of the shared 512MB of memory, and we're upping the frequencies of the main components just a little bit. This gives us a little performance boost, while still remaining quite conservative.
 
-Now for some FreeBSD specific changes. Edit/create the *img/ufs/boot/loader.conf* file, and set it to:
+Now for some FreeBSD specific changes. Edit/create the *img/ufs/boot/loader.conf* file, and make it:
 
 	zfs_load="YES"
 	vm.kmem_size="180M"
 	vm.kmem_size_max="180M"
 	vfs.zfs.arc_max="24M"
 
-This causes the ZFS module to load, sets the kernel memory size at a hard 180MB, which should be large enough for ZFS's needs, and restricts the size of the [ARC](https://en.wikipedia.org/wiki/Adaptive_replacement_cache), leaving more of that 180MB for the meat of ZFS.
+This causes the ZFS module to load with the kernel, sets the kernel memory size at a hard 180MB, which should be large enough for ZFS's needs, and restricts the size of the [ARC](https://en.wikipedia.org/wiki/Adaptive_replacement_cache), leaving more of that 180MB for the meat of ZFS.
 
 Now edit *img/ufs/etc/fstab*.
 
@@ -965,7 +965,7 @@ Now edit *img/ufs/etc/fstab*.
 	tmpfs   /var/run        tmpfs   rw      0       0
 	tmpfs   /var/log        tmpfs   rw      0       0
 
-The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. We've also added a swap partition of about 900MB and unlike the kernel, the contents of these memory disks is easily swapped out, so we're not likely to hit memory issues. A good trade off I think.
+The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 900MB, the contents of these memory disks is easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
 
 Here's *img/ufs/etc/rc.conf*:
 
@@ -993,9 +993,9 @@ Transatlantic sorts may wish to change the keymap to 'us'. Details of these choi
 
 We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *img/ufs/etc/ttys* with an empty file:
 
-	root@local# echo > img/ufs/etc/ttys
+	root@local# echo > ~hugh/knox/img/ufs/etc/ttys
 
-Here's *img/ufs/etc/ssh/sshd_config*:
+Here's *img/ufs/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
 	HostKey /etc/ssh/ssh_host_ed25519_key
 	TrustedUserCAKeys /etc/ssh/knox-ca
@@ -1010,12 +1010,12 @@ Here's *img/ufs/etc/ssh/sshd_config*:
 
 Remember to change the user. The last step is to place the fingerprint of the signing key you made way back up in the section about *sshd_config*
 
-	root@local# ssh-keygen -y -f ~/your-ca-key > img/etc/ssh/knox-ca
+	root@local# ssh-keygen -y -f ~/your-ca-key > ~hugh/knox/img/ufs/etc/ssh/knox-ca
 
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
 
-	root@local# umount img/dos img/ufs
-	root@local# dd if=image of=/dev/mmcsd0 bs=1M TODO
+	root@local# umount ~hugh/knox/img/dos ~hugh/knox/img/ufs
+	root@local# dd if=~hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img of=/dev/mmcsd0 bs=1M
 	root@local# sync
 
 Put the SD card in your RPi, boot it up. The first boot may be a little slow as it generates host SSH keys, but this is a one-time delay. We'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
