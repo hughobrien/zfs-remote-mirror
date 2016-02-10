@@ -907,13 +907,11 @@ Verify that I'm not sneaking anything in with the following command:
 There's one tweak to make to crochet before we build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards. We could simply not use any swap, but as the RPi is so memory constrained it seems like a prudent precaution.
 
 To make it easy to enable encrypted swap, we're going to direct crochet to create an extra partition in the image. Edit the file *~/knox/crochet/board/RaspberryPi/setup.sh* and find the function *raspberry_pi_partition_image ( )*.
-Above the line *disk_ufs_create* add *disk_ufs_create 3000m*. [Here's a patch showing the change](https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/patches/setup.sh.patch)
+Above the line *disk_ufs_create* add *disk_ufs_create 3000m*. [Here's a patch showing the change](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/setup.sh.patch).
 
-If you're using a card other than a 4GB one you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 900MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
+If you're using a card size other than 4GB you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 900MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
 
-Just one last change, there's a DEFINE statement in the opensolaris code that causes some build issues, thankfully it's not needed so we can simply delete it. Edit the file *~/knox/src/sys/cddl/compat/opensolaris/sys/cpuvar.h* and delete the line *#define>cpu_id>-cpuid*, it's on line 50 of the file at the time of writing.
-
-Patch files describing all of these modifications are in the *patch* directory if necessary. TODO do this.
+Just one last change, there's a DEFINE statement in the *opensolaris* code that causes some build issues, thankfully it's not needed so we can simply delete it. Edit the file *~/knox/src/sys/cddl/compat/opensolaris/sys/cpuvar.h* and delete the line *#define>cpu_id>-cpuid*, it's on line 50 of the file at the time of writing. [Here's the patch](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/cpuvar.h.patch).
 
 With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the RaspberryPi version of *uboot* installed, which will be automatically placed into the image.
 
