@@ -1,4 +1,4 @@
-zFS Remote Mirrors for Home Use
+ZFS Remote Mirrors for Home Use
 ===============================
 Why pay a nebulous cloud provider to store copies of our boring, but nice to have data? Old photographs, home videos, college papers, MP3s from Napster; let's just stick them somewhere and hope the storage doesn't rot.
 
@@ -929,12 +929,7 @@ Once it's finished, you'll have a 4GB image that's ready to be put on the SD car
 	root@local# mount_msdosfs /dev/md0s1 img/dos
 	root@local# mount /dev/md0s2a img/ufs
 
-Both the boot and the system partition are now mounted. *u-boot-rpi* includes the necessary firmware files to boot the RPi, but the RaspberryPi Foundation often put out new releases. We can easily grab these and insert them into the image.
-
-	root@local# cd img/dos
-	root@local# sh -c 'for file in fixup.dat fixup_cd.dat start.elf start_cd.elf bootcode.bin; do fetch https://github.com/raspberrypi/firmware/raw/master/boot/$file; done'
-
-Next, replace the contents of *config.txt* with the following:
+Replace the contents of *img/dos/config.txt* with the following:
 
 	device_tree=rpi.dtb
 	device_tree_address=0x100
@@ -1010,9 +1005,11 @@ Here's *img/ufs/etc/ssh/sshd_config*, this is detailed earlier in the document.
 	KexAlgorithms curve25519-sha256@libssh.org
 	Ciphers chacha20-poly1305@openssh.com
 
-Remember to change the user. The last step is to place the fingerprint of the signing key you made way back up in the section about *sshd_config*
+Remember to change the user. Now some SSH tasks. Install the fingerprint of the signing key you made way back up in the section about *sshd_config*, and generate the host key for the device while we're at it.
 
 	root@local# ssh-keygen -y -f ~/your-ca-key > /home/hugh/knox/img/ufs/etc/ssh/knox-ca
+	root@local# ssh-keygen -t ed25519 -f /home/hugh/knox/img/ufs/etc/ssh/ssh_host_ed25519_key # pres <enter> when prompted for a passphrase
+
 
 I lied, we should also add some entropy.
 
@@ -1037,4 +1034,8 @@ One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren'
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know! To use it:
+Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://github.com/hughobrien/zfs-remote-mirror/raw/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+
+Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
+	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz
+	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295446M.img.xz) = 5cdd85a03c1d5475ce72fc20b9623f50936b72ab61a614524385a11f07705622
