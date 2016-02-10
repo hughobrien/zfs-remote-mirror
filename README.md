@@ -851,23 +851,24 @@ If it succeeds, you'll get a message similar to:
 Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all the hard work of image building for us. The package is maintained on GitHub, which is a little unusual for FreeBSD. If you have *git*, or indeed *git-lite* installed on your system you can get the code with:
 
 	hugh@local$ git clone https://github.com/freebsd/crochet.git
+	hugh@local$ cd crochet
 
-If you don't have git, GitHub provide zipped archives:
+If you don't have *git*, GitHub provide zipped archives:
 
 	hugh@local$ fetch https://github.com/freebsd/crochet/archive/master.zip
 	hugh@local$ unzip master.zip
 	hugh@local$ mv crochet-master crochet
 	hugh@local$ cd crochet
 
-Crochet operates around a central build script, called *config.sh*. There's a sample file in this directory, which I recommend you take a look at, but for expediency, simply create a new file in this directory called config.sh with the following contents:
+Crochet operates around a central build script, called *config.sh*. There's a sample file in this directory, which I recommend you take a look at, but for expediency, simply create a new file in this directory called *config.sh* with the following contents:
 
 	board_setup RaspberryPi
-	option ImageSize 3900mb # for 4 Gigabyte card
+	option ImageSize 3900mb
 	option User hugh
 	KERNCONF=RPI-B-ZFS
 	FREEBSD_SRC=/home/hugh/knox/src
 
-Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad-sectors more easily. The formula for this is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
+Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad-sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of GigaBytes on your card.
 
 The *KERNCONF* is where the fun is. This is the specification of how to build the kernel for the RaspberryPi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
 
@@ -877,7 +878,7 @@ The *KERNCONF* is where the fun is. This is the specification of how to build th
 
 I've also removed the following modules, as I don't feel them necessary for this use case and as the RPi is so memory constrained, every byte helps. Some of these options are explained in more detail in the [Developer's Handbook](https://www.freebsd.org/doc/en/books/developers-handbook/kerneldebug-options.html).
 * INET6 -- Support for IPv6, you may want to leave this in.
-* SCTP -- Stream Control Transmission Protocol, like an optimised TCP not much use here.
+* SCTP -- Stream Control Transmission Protocol, like an optimised TCP, not much use here.
 * UFS_DIRHASH -- A speed/memory trade-off in the wrong direction for us.
 * QUOTA -- Quota supports not relevant as we're the only human user of this system.
 * NFSCL -- Network File System, no need for this at all.
@@ -897,16 +898,18 @@ I've also removed the following modules, as I don't feel them necessary for this
 This is, of course, somewhat cumbersome to do manually, so you can grab the config file directly from here:
 
 	hugh@$local$ cd ~/knox/src/sys/arm/conf
-	hugh@$local$ fetch githubfilelink TODO
+	hugh@$local$ fetch https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/patches/RPI-B-ZFS
 
 Verify that I'm not sneaking anything in with the following command:
 
 	hugh@local$ diff --side-by-side --suppress-common-lines RPI-B RPI-B-ZFS
 
-One last tweak to make to crochet before we kick off the build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards. We could simply not use any swap, but as the RPi is so memory constrained it seems like a prudent precaution.
+There's one tweak to make to crochet before we build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards. We could simply not use any swap, but as the RPi is so memory constrained it seems like a prudent precaution.
 
 To make it easy to enable encrypted swap, we're going to direct crochet to create an extra partition in the image. Edit the file *~/knox/crochet/board/RaspberryPi/setup.sh* and find the function *raspberry_pi_partition_image ( )*.
-Above the line *disk_ufs_create* add *disk_ufs_create 3000m*, if you're using a card other than a 4GB one you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 900MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
+Above the line *disk_ufs_create* add *disk_ufs_create 3000m*. [Here's a patch showing the change](https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/patches/setup.sh.patch)
+
+If you're using a card other than a 4GB one you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 900MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
 
 Just one last change, there's a DEFINE statement in the opensolaris code that causes some build issues, thankfully it's not needed so we can simply delete it. Edit the file *~/knox/src/sys/cddl/compat/opensolaris/sys/cpuvar.h* and delete the line *#define>cpu_id>-cpuid*, it's on line 50 of the file at the time of writing.
 
