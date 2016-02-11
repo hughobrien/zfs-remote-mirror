@@ -2,7 +2,7 @@ ZFS Remote Mirrors for Home Use
 ===============================
 **Update: Now with pre-built ZFS RaspberryPi image! Jump to the Appendix for more information.**
 
-**ECC Update: It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module, potentially attempting to *correct* it and thus actually corrupting it. This makes *scrub* operations particularly treacherous. For this reason, ECC memory is really, really, recommended.**
+**ECC Update: The requirement for ECC memory with ZFS is a little contentious, more information in the Appendix.**
 
 Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
@@ -716,7 +716,7 @@ From time to time connect into the remote system and check the system logs and m
 
 You will need to reboot if *freebsd-update* makes any changes.
 
-It's also sound practice to occasionally exercise the disks, both your local and the remote one with a *scrub* operation. The instructs ZFS to re-read every block on the disk and ensure that they checksum correctly. Any errors can be found will be logged and they probably signal that you should replace the disk. **CAUTION:** Only do this if you have ECC memory. See note at the top of the guide.
+It's also sound practice to occasionally exercise the disks, both your local and the remote one with a *scrub* operation. The instructs ZFS to re-read every block on the disk and ensure that they checksum correctly. Any errors can be found will be logged and they probably signal that you should replace the disk.
 
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ ssh knox-shell
@@ -781,7 +781,7 @@ In all but the last two cases, we must consider the drive totally lost. It might
 
 **What if the backup computer dies, but the drive is okay?** Recycle the computer. Buy/liberate another one, install FreeBSD as above, then just connect the drive and carry on.
 
-**What about slow, creeping drive death, as opposed to total failure?** ZFS has your back. Take a look at '*zpool status*' every now and then on both machines (the remote will have to be attached of course). If you see any checksum errors, buy a new disk.
+**What about slow, creeping drive death, as opposed to total failure?** ZFS has your back. Take a look at '*zpool status*' every now and then on both machines (the remote will have to be attached of course). If you see any checksum errors, buy a new disk. Every so often, run '*zpool scrub*' on both disks to have ZFS read and verify every sector, then check the status and do what you need to do. Life is too short for bad hard disks, and 2TiB is a lot of data to loose.
 
 **My local disk failed, can I swap in my backup?** Probably. Use *geli* to attach it locally (with the key) and then use '*zpool import*'. Then buy a new drive and go through the motions again.
 
@@ -1042,3 +1042,24 @@ You can also flash the image directly and make your changes live, grab a signed 
 	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
 
 Now go back to the start and fill in any missing steps.
+
+Appendix - ECC Memory
+====================
+It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module. If ZFS then attempts to *correct* it, based on some online redundancy, that correction too may pass through the bad memory thus actually corrupting it.
+
+A *scrub* operation, which is normally used to check the disks, might end up funnelling all the data through a bad memory module. However, there are a few factors that mitigate this potential disaster:
+
+* ZFS will take the pool offline if it detects too may errors, thus reducing the fallout.
+* ZFS will only attempt to auto-correct the data if it has some redundancy information such as provided by the *copies* paramater or by parity data. We use neither in this setup, though you may optionally enable *copies* on a per-dataset basis.
+
+[Here](https://research.cs.wisc.edu/adsl/Publications/zfs-corruption-fast10.pdf) is a paper which analysed the result of many different types of memory corruption on a running ZFS system. The general conclusion is that while ZFS is not immune to memory issues, more often than not it will crash when it encounters them. Without performing a similar analysis for simpler filesystems, we cannot definitively say whether ZFS handles memory issues better or worse.
+
+As a general rule, use ECC memory if possible. Though I suspect that if your data were so critical to require it, you would be using a more dedicated, specialised backup solution.
+
+Here's some more debate on the matter:
+
+* [Ars Technica](http://arstechnica.com/civis/viewtopic.php?f=2&t=1235679&p=26303271#p26303271)
+* [freenas](https://forums.freenas.org/index.php?threads/ecc-vs-non-ecc-ram-and-zfs.15449/)
+* [brianmoses](http://blog.brianmoses.net/2014/03/why-i-chose-non-ecc-ram-for-my-freenas.html)
+* [JRS Systems](http://jrs-s.net/2015/02/03/will-zfs-and-non-ecc-ram-kill-your-data/)
+* [Louwrentius] (http://louwrentius.com/please-use-zfs-with-ecc-memory.html)
