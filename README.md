@@ -1025,9 +1025,13 @@ Once you've found the new addition, connect in using a key signed by the *knox-c
 
 One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the famous [Ports](https://www.freebsd.org/ports/) tree makes it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything that task needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that ports tree from *portsnap* is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
 
+To use these packages, grab the *pkg-static* binary and use that to install *pkg* properly.
+
+	root@knox# ./pkg-static add pkg-1.6.3.txz
+
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://github.com/hughobrien/zfs-remote-mirror/raw/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh' (you can change that after logging in), and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+Congratulations on making it to the end, as a reward, there's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh' (you can change that after logging in), and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
 
 Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
 
@@ -1036,7 +1040,7 @@ Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify tha
 	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
 	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 45000618bd93d352bdd7d16d24671d515b1d054971ac4a4885ef8f0cb494ee32
 	hugh@local$ xz -k FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
-	# use mdconfig and mount now
+	# now use mdconfig and mount
 
 You can also flash the image directly and make your changes live, grab a signed login key to do this:
 
@@ -1047,3 +1051,5 @@ You can also flash the image directly and make your changes live, grab a signed 
 	hugh@local$ ssh -i knox-login hugh@192.168.1.13 # replace with your assigned IP
 
 	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
+
+Now go back to the start and fill in any missing steps.
