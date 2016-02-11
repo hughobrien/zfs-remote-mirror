@@ -1031,15 +1031,18 @@ Congratulations on making it to the end, as a reward, [here's a pre-made RPi ima
 
 Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
 
+	hugh@local$ prefix="https://github.com/hughobrien/zfs-remote-mirror/raw/master"
+	hugh@local$ fetch $prefix/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
 	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
 	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 45000618bd93d352bdd7d16d24671d515b1d054971ac4a4885ef8f0cb494ee32
+	hugh@local$ xz -k FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
+	# use mdconfig and mount now
 
 You can also flash the image directly and make your changes live, grab a signed login key to do this:
-
 	root@local# xzcat FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz | dd of=/dev/mmcsd0 bs=1m
 	# transfer to RPi
-	hugh@local$ fetch https://github.com/hughobrien/zfs-remote-mirror/raw/master/keys/knox-login 
-	hugh@local$ fetch https://github.com/hughobrien/zfs-remote-mirror/raw/master/keys/knox-login-cert.pub
+	hugh@local$ fetch $prefix/keys/knox-login 
+	hugh@local$ fetch $prefix/keys/knox-login-cert.pub
 	hugh@local$ ssh -i knox-login hugh@192.168.1.13 # replace with your assigned IP
 
 	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
