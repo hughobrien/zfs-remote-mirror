@@ -382,8 +382,7 @@ FreeBSD provides binary updates for [Tier 1 architectures](https://www.freebsd.o
 
 Tier 1 users should execute the following, they may take a few minutes to run. *fetch* will present a long list of files that will be updated, you can simply press '*q*' to exit this.
 
-	root@knox# freebsd-update fetch
-	root@knox# freebsd-update install
+	root@knox# freebsd-update fetch install
 
 
 The pkg system
@@ -711,7 +710,7 @@ From time to time connect into the remote system and check the system logs and m
 
 	root@knox# less +G /var/log/messages
 	root@knox# pkg upgrade
-	root@knox# freebsd-update fetch; freebsd-update install
+	root@knox# freebsd-update fetch install
 
 You will need to reboot if *freebsd-update* makes any changes.
 
