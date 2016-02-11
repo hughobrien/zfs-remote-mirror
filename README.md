@@ -813,21 +813,21 @@ The basic process is:
 
 I'm working with FreeBSD 10.2, which is the production branch at the time of writing. There are some [pre-made images](https://ftp.heanet.ie/pub/FreeBSD/releases/arm/armv6/ISO-IMAGES/10.2/) provided by the foundation but they're of 10.2-RELEASE, 10.2-STABLE has advanced a little since then. And since we're going to all the bother of building our own images, it makes sense to get the best available code. Also, rather crucially, these images do not support ZFS.
 
-The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and un-breaking as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything already in it play well together. When they're satisfied they 'tag' a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
+The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and un-breaking as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything in it work well together. When they're satisfied they *tag* a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement, and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
 
-Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, to get them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
+Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, bringing them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
 
 I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our RaspberryPi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
 
 * head - no, too unstable.
 * stable/10 - currently working towards 10.3, so not quite stable.
 * releng/10.2 - the latest (at the time of writing) feature branch with all known errata applied.
-* releng/10.1 - an older 10 feature branch, no reason to go back in time for this one.
-* releng/10.0 - as above
+* releng/10.1 - an older 10 feature branch.
+* releng/10.0 - as above.
 * stable/9 - 9 isn't getting much love right now, but it's still supported.
 * releng/9.3 - the last feature branch for 9, will still get errata fixes if necessary.
 * ...
-* stable/8 - 8 is no longer supported, but it's still there for all the world to see. The Pi wasn't supported at this point however.
+* stable/8 - 8 is no longer supported, but it's still there for all the world to see. Doesn't support the RPi.
 * ...
 * stable/2.2 - FreeBSD is indeed old.
 
@@ -837,7 +837,7 @@ So, since we're building our own image, and compiling all our own code, we want 
 	hugh@local$ cd ~/knox
 	hugh@local$ svnlite co https://svn.freebsd.org/base/releng/10.2 src
 
-*svn* is the short command name for [Subversion](https://subversion.apache.org/), the source code management system the FreeBSD project uses ('co' is shorthand for the 'checkout' subcommand, which has a special meaning within Subversion, but for our purposes just think of it as 'download'). However, Subversion is a somewhat large package, so in the name of minimalism, FreeBSD ships *svnlite* instead, which is just fine for our needs. The 'src' at the end is the destination folder to store the many files in.
+*svn* is the short command name for [Subversion](https://subversion.apache.org/), the source code management system the FreeBSD project uses *'co* is shorthand for the *checkout* subcommand, which has a special meaning within Subversion, but for our purposes just think of it as *download*). However, Subversion is a somewhat large package, so in the name of minimalism, FreeBSD ships *svnlite* instead, which is just fine for our needs. The *src* at the end is the destination folder.
 
 This checkout process will take some time. On my system the process will occasionally fail due to network issues, leaving the source directory in an inconsistent state. If this happens, I recommend you delete the whole directory (*rm -rf ~/knox/src*) and try again.
 
@@ -865,7 +865,7 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 	KERNCONF=RPI-B-ZFS
 	FREEBSD_SRC=/home/hugh/knox/src
 
-Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad-sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
+Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
 
 The *KERNCONF* is the specification of how to build the kernel for the RaspberryPi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
 
@@ -901,7 +901,7 @@ Verify that I'm not sneaking anything in with the following command:
 
 	hugh@local$ diff --side-by-side --suppress-common-lines RPI-B RPI-B-ZFS
 
-There's one tweak to make to crochet before we build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards. We could simply not use any swap, but as the RPi is so memory constrained it seems like a prudent precaution.
+There's one tweak to make to crochet before we build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards.
 
 To make it easy to enable encrypted swap, we're going to direct crochet to create an extra partition in the image. Edit the file *~/knox/crochet/board/RaspberryPi/setup.sh* and find the function *raspberry_pi_partition_image ( )*.
 Above the line *disk_ufs_create* add *disk_ufs_create 3000m*. [Here's a patch showing the change](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/setup.sh.patch).
@@ -925,7 +925,7 @@ Once it's finished, you'll have a 4GB image that's ready to be put on the SD car
 	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img # note the name this returns, it will probably be md0.
 	root@local# mount /dev/md0s2a img
 
-Create the *img/boot/loader.conf* file, and make it:
+Create the *img/boot/loader.conf* file:
 
 	zfs_load="YES"
 	vm.kmem_size="180M"
@@ -989,7 +989,7 @@ Here's *img/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
 Remember to change the user. Now some SSH tasks. Install the fingerprint of the signing key you made way back up in the section about *sshd_config*, and generate the host key for the device while we're at it.
 
-	root@local# ssh-keygen -y -f ~/your-ca-key > /home/hugh/knox/img/etc/ssh/knox-ca
+	root@local# ssh-keygen -y -f /home/hugh/your-ca-key > /home/hugh/knox/img/etc/ssh/knox-ca
 	root@local# ssh-keygen -t ed25519 -f /home/hugh/knox/img/etc/ssh/ssh_host_ed25519_key # pres <enter> when prompted for a passphrase
 
 
@@ -998,14 +998,14 @@ Note the key fingerprint generated from the above. Lastly, we should also add so
 	root@local# dd if=/dev/random of=/home/hugh/knox/img/entropy bs=4k count=1
 	root@local# chmod 600 /home/hugh/knox/img/entropy
 
-All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
+All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at '*dmesg | tail*' to see what device name it gets. Mine is *mmcsd0*.
 
 	root@local# umount /home/hugh/knox/img
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
 	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
-You can check the progress of the *dd* operation by typing ctrl-t . Put the SD card in your RPi, and boot it up. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
+You can check the progress of the *dd* operation by typing *ctrl-t* . Put the SD card in your RPi, and boot it up. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
 
 	hugh@local$ nmap -Pn -p ssh --open <your local network>/<your CIDR mask>  # probably 192.168.1.0/24
 
@@ -1019,7 +1019,7 @@ To use these packages, grab the *pkg-static* binary from the folder and use that
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, there's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh' (you can change that after logging in), and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh' (you can change that after logging in), and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
 
 Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
 
@@ -1041,5 +1041,3 @@ You can also flash the image directly and make your changes live, grab a signed 
 	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
 
 Now go back to the start and fill in any missing steps.
-
-TODO tildes /home/
