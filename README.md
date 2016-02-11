@@ -574,7 +574,7 @@ Snapshots will be given names of the form *'2015-07-24T16:14:10Z* ([ISO 8601 for
 
 Let's make sure your *local* user has the requisite permissions to use *zfs*:
 
-	root@local$ zfs allow -u hugh send,diff,snapshot,mount wd
+	root@local$ zfs allow -u hugh send,diff,snapshot,mount,hold wd
 
 Back to user level, and drum roll please...
 
