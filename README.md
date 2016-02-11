@@ -529,7 +529,7 @@ Drop the following script into the *user's* home directory (as *root*), call it 
 
 Then:
 
-	root@knox# chmod 4750 /home/hugh/zfs-receive.sh
+	root@knox# chmod 4750 /usr/home/hugh/zfs-receive.sh
 
 This uses the *setuid* permissions feature to permit users who have execute permission on the file (*root* and members of the *wheel* group) to execute the file with the permissions of the file owner, *root*, in this case. Think of it as a safe way of allowing certain users to run privileged commands.
 
