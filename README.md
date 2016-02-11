@@ -392,7 +392,7 @@ The pkg system
 
 The blessed ones can run the following; you'll be prompted to install *pkg*.
 
-	root@knox# pkg upgrade
+	root@knox# pkg update
 
 Install [any other packages](https://www.freebsd.org/doc/handbook/ports-finding-applications.html) you like at this point.
 
@@ -438,7 +438,6 @@ Yup, it's a 4KiB drive. Now we'll generate the encryption key for the [GELI](htt
 
 	hugh@local$ (umask 177; touch ~/.ssh/knox-geli-key)
 	hugh@local$ dd if=/dev/random bs=1k count=1 > ~/.ssh/knox-geli-key
-	hugh@local$ chmod 600 ~/.ssh/knox-geli-key
 
 Strictly, we shouldn't store that in *~/.ssh*, but it's as good a place as any. You'll have noticed that we're not using any password with this key, and since we can't back it up to the backup system (egg, chicken, etc.) we'll need to store it somewhere else. But while we might be happy to have it lying around unencrypted on our local system, where we can reasonably control physical access, we're better off encrypting it for storage on Dropbox or in an email to yourself or wherever makes sense as we don't know who might have access to those systems (presume everyone). You could also stick it on an old USB flash drive and put it in your sock drawer if you know what an [NSL](https://en.wikipedia.org/wiki/National_security_letter) is.
 
@@ -449,13 +448,13 @@ Make sure you use a good password (maybe the same as you use for your login) and
 	hugh@local$ < key-backup.txz.aes openssl aes-128-cbc -d | tar -xf -
 	hugh@local$ ls .ssh
 
-(*tar* can automatically decompress). Let's get a quick measurement on the drive's normal speed before we activate the encryption.
+Let's get a quick measurement on the drive's normal speed before we activate the encryption.
 
 	root@knox# dd if=/dev/zero of=/dev/da0 bs=1m count=100
-	..
+	...
 	104857600 bytes transferred in 15.057181 secs (6963960 bytes/sec)
 
-Send the key over to *knox*, this is only for the initial setup, it won't hold a copy of it. Also, since */tmp* is now a memory drive, we don't need to worry about any hardcore [Guttmann](https://en.wikipedia.org/wiki/Gutmann_method) secure erasure.
+Send the key over to *knox*, this is only for the initial setup, it won't hold a copy of it. Also, since */tmp* is now a memory drive, we don't need to worry about anything as serious as [Guttmann](https://en.wikipedia.org/wiki/Gutmann_method) erasure.
 
 	hugh@local$ scp ~/.ssh/knox-geli-key knox:/tmp
 
@@ -480,7 +479,7 @@ Fifteen percent drop? Not too bad. Again, this was never going to be a high-perf
 
 ZFS
 ---
-Now that we have an encrypted substrate, we can hand it over to ZFS. The *zpool* command handles all things low-level in ZFS. I'm calling my pool *wd* (it's a [WD](https://en.wikipedia.org/wiki/Western_Digital) disk).
+Now that we have an encrypted substrate, we can hand it over to ZFS. The *zpool* command handles all things low-level in ZFS. I'm calling my pool [*wd*](https://en.wikipedia.org/wiki/Western_Digital).
 
 	root@knox# zpool create -O atime=off -O compression=lz4 wd da0.eli
 
@@ -513,11 +512,11 @@ You should only see references to the encrypted swap, probably on *ada0p3.eli*. 
 
 Datasets
 --------
-ZFS datasets allow you to specify different attributes on different sets of data; whether to use compression, access control lists, quotas, etc. I find that I need precisely none of those features, preferring to treat my backup storage as one large dataset with sane properties. There's nothing stopping you from creating different datasets and synchronising them to the backup system, I just don't see the point for personal backups. Know also that it makes previewing the differences between snapshot more complex, as *diff* cannot automatically recurse into dependent snapshots, it has to be done per dataset. This isn't a big deal though.
+ZFS datasets allow you to specify different attributes on different sets of data; whether to use compression, access control lists, quotas, etc. I find that I need precisely none of those features, preferring to treat my backup storage as one large dataset with sane properties. There's nothing stopping you from creating different datasets and synchronising them to the backup system, I just don't see the point for personal backups. Know also that it makes previewing the differences between snapshot more complex, as *zfs diff* cannot automatically recurse into dependent snapshots, it has to be done per dataset. This isn't really a big deal though.
 
 Plumbing
 ========
-Drop the following script into the *user's* home directory, call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
+Drop the following script into the *user's* home directory (as *root*), call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
 
 	#!/bin/sh
 
@@ -530,23 +529,23 @@ Then:
 
 	root@knox# chmod 4750 /home/hugh/zfs-receive.sh
 
-This uses the *setuid* feature to allow users who have execute permission on the file (*root* and members of the *wheel* group) to execute the file with the permissions of the file owner, *root*, in this case. Think of it as a safe way of allowing certain users to run privileged commands.
+This uses the *setuid* permissions feature to permit users who have execute permission on the file (*root* and members of the *wheel* group) to execute the file with the permissions of the file owner, *root*, in this case. Think of it as a safe way of allowing certain users to run privileged commands.
 
 
-What's this you say? I promised that we wouldn't store the key on the backup server? [Behold!](https://en.wikipedia.org/wiki/Named_pipe)
+What's this you say? I promised that we wouldn't store the key on the backup server? [Behold! The Named Pipe](https://en.wikipedia.org/wiki/Named_pipe)
 
 Don't set any passwords on these two keys, we need them to be scriptable.
 
 	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-fifo
 	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-send
 
-These two keys are not password protected, but they are going to be completely restricted in what they can do. This allows us to use them in an automatic way, without the fear of them being abused.
+Though these two keys are not password protected, but they are going to be completely restricted in what they can do. This allows us to use them in an automatic way, without the fear of them being abused.
 Now bless them. This will ask for the CA password.
 
-	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-fifo -O clear -O force-command="cd /tmp; mkfifo -m 600 k; cat - > k; rm k" -n hugh ~/.ssh/knox-fifo.pub
-	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="~/zfs-receive.sh" -n hugh ~/.ssh/knox-send.pub
+	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-fifo -O clear -O force-command="mkfifo -m 600 /tmp/k; cat - > /tmp/k; rm -P /tmp/k" -n hugh ~/.ssh/knox-fifo.pub
+	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="/usr/home/hugh/zfs-receive.sh" -n hugh ~/.ssh/knox-send.pub
 
-Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a [*fifo*](https://www.freebsd.org/cgi/man.cgi?query=mkfifo&sektion=1) on the */tmp* memory disk that we write to from *stdin*. This of course, will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next, as root. Upon reading the *fifo* the key is transferred directly from our local system to the *geli* process and never touches the disk, or the RAM disk.
+Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a [*fifo*](https://www.freebsd.org/cgi/man.cgi?query=mkfifo&sektion=1) on the */tmp* memory disk that we write to from *stdin*. This will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next, with root permissions. Upon reading the *fifo* the key is transferred directly from our local system to the *geli* process and never touches the disk, or the RAM disk.
 
 And before you complain, that's not a [*useless use of cat*](https://image.slidesharecdn.com/youcodelikeasysadmin-141120122908-conversion-gate02/95/you-code-like-a-sysadmin-confessions-of-an-accidental-developer-10-638.jpg?cb=1416487010), it's required for *tcsh*.
 
@@ -573,14 +572,16 @@ Snapshots will be given names of the form *'2015-07-24T16:14:10Z* ([ISO 8601 for
 
 Let's make sure your *local* user has the requisite permissions to use *zfs*:
 
-	root@local$ zfs allow-u hugh send,diff,snapshot,mount wd
+	root@local$ zfs allow -u hugh send,diff,snapshot,mount wd
 
 Back to user level, and drum roll please...
 
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ zfs send -Rev "wd@$snapname" | ssh knox-send
 
-Your data is now safe, secure, and far away. Accessible to only someone with your SSH key (or physical access) and readable only by someone with your geli key.
+Be preparted to wait...
+
+Your data is now safe, secure, and (soon to be) far away. Accessible to only someone with your SSH key and its password (or physical access) and readable only by someone with your geli key.
 
 Incremental Backups
 -------------------
@@ -634,7 +635,7 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 
 	send_incremental_snapshot() {
 		ssh knox-fifo < ~/.ssh/knox-geli-key &
-		sleep 2
+		sleep 3
 		zfs send -RevI "$latest_remote" "$latest_local" \
 		| ssh knox-send
 	}
@@ -678,9 +679,9 @@ Now we can place the backup system in its permanent location. This is highly sub
  * To power up again if it looses power.
  * To auto-power on at a certain time in case the above fails.
 * Give the system a DHCP MAC reservation on the gateway, or a static IP if not possible.
- * Set up port forwarding. Take port 22 if available.
- * Set up a [Dynamic DNS](https://freedns.afraid.org/) name if the modem has a dynamic external IP.
  * Edit */etc/rc.conf* to set a static IP if you can't reserve an address through DHCP.
+ * Set up port forwarding. Take port 22 if available, or map to port 22 and update your local ssh config file with *Port* details.
+ * Set up a [Dynamic DNS](https://freedns.afraid.org/) name if the modem has a dynamic external IP.
 
 If it's not possible to use port forwarding, there are some alternatives for connecting to the system:
 
@@ -688,7 +689,7 @@ If it's not possible to use port forwarding, there are some alternatives for con
 * IPv6.
 * SSH wizardry involving [autossh](http://www.harding.motd.ca/autossh/), proxy commands, and reverse tunnels. In this case your local system, or some mutually accessible proxy system must have a static IP.
 
-A Tor hidden service is probably the most reliable fall back, but it will be slow and it's not really in the spirit of Tor to use it in this way. One especially nice feature is that you can leave your remote system deep within a large network (e.g. your employer or University (get permission)) and as long as Tor can get out, you can get in. No need for a direct connection to the modem or DHCP reservations. Personally, I like to have a hidden service running even if I have port-forwarding working, as a fall back measure. e.g. if the modem were replaced or factory-reset, I could *tor* in and with SSH forwarding connect to the modem's WebUI and set up forwarding again.
+A Tor hidden service is probably the most reliable fall back, but it will be slow and it's not really in the spirit of Tor to use it in this way. One especially nice feature is that you can leave your remote system deep within a large network (e.g. your employer or University (**get permission**)) and as long as Tor can get out, you can get in. No need for a direct connection to the modem or DHCP reservations. Personally, I like to have a hidden service running even if I have port-forwarding working, as a fall back measure. e.g. if the modem were replaced or factory-reset, I could *tor* in and with SSH forwarding connect to the modem's WebUI and set up forwarding again.
 
 Once you're worked out your method, adjust your config file on your **local** machine to use the new Internet accessible name.
 
@@ -699,13 +700,14 @@ Once you're worked out your method, adjust your config file on your **local** ma
 		#HostName http://idnxcnkne4qt76tg.onion/ # Tor hidden service
 
 	# Remember to adjust the knox-fifo and knox-send entries also.
+	# Or make an entry in /etc/hosts, but that's just another thing to manage.
 
 Care & Feeding
 ==============
 Upkeep
 -----
 
-From time to time connect into the remote system and check the system logs and messages for anything suspicious. Also consider updating any installed packages and keeping up to date with errata patches. *pkg* and *freebsd-update* make this easy.
+From time to time connect into the remote system and check the system logs and messages for anything suspicious. Also consider updating any installed packages and keeping up to date with errata patches. *pkg* and *freebsd-update* make this easy (on Tier 1 platforms).
 
 	root@knox# less +G /var/log/messages
 	root@knox# pkg upgrade
@@ -726,8 +728,9 @@ It's also sound practice to occasionally exercise the disks, both your local and
 	.....
 	root@knox# zpool status # is it done?
 	root@knox# zpool detach
+	root@knox# rm -P /tmp/k
 
-*zpool* will give you some information about the speed of the operation and an estimated time to completion. Be aware that your drive is unlocked in this state, and you should detach it once the scrub has completed. It is possible to have it self-detach once completed, with a bit of scripting, but I think this may run afoul of any automated backups.
+*zpool status* will give you some information about the speed of the operation and an estimated time to completion. Be aware that your drive is unlocked in this state.
 
 Extra Encryption
 ----------------
@@ -755,21 +758,21 @@ To mount the volume for further use:
 	root@local# geli attach -d /dev/zvol/wd/vol
 	root@local# mount /dev/zvol/wd/vol.eli /wd/vol
 
-You may wish to define some shell functions (using *sudo*, or scripts with *setuid*) to handle the repetitive attaching and detaching. The contents of vol will be included in any snapshots and will be sent to the remote system during *zfs send*. I recommend having the volume unmounted and detached before snapshotting though.
+You may wish to define some shell functions (using *sudo*, or scripts with *setuid*) to handle the repetitive attaching and detaching. The contents of *vol* will be included in any snapshots and will be sent to the remote system during *zfs send*. I recommend having the volume unmounted and detached before snapshotting though.
 
 Disaster Recovery
 -----------------
 One day, one of the following things will happen:
 
-* The motor in your USB drive will fail.
-* The [GoldenEye](https://en.wikipedia.org/wiki/GoldenEye) will be fired.
+* A motor or sensor in your USB drive [will fail](https://www.youtube.com/watch?v=Nr-RsGX6Ywk).
+* The [GoldenEye](https://www.youtube.com/watch?v=HHFXthl5IJo) will be fired.
 * A power surge will blow the regulator on the old laptop.
 * Someone will knock the remote drive onto the ground while cleaning.
 * A drive head will turn masochistic.
 * [Cosmic rays](https://en.wikipedia.org/wiki/Soft_error#Cosmic_rays_creating_energetic_neutrons_and_protons) will flip your bits.
 * The drive containing the OS will fail.
 
-In all but the last case, we must consider the drive totally lost. It might happen to your local drive first, because it experiences more activity than the backup. It might happen to the remote drive first, because it lives in a room without central heating and is subject to wider temperature fluctuations. No matter how it happens, **it is going to happen**.
+In all but the last two cases, we must consider the drive totally lost. It might happen to your local drive first, because it experiences more activity than the backup. It might happen to the remote drive first, because it lives in a room without central heating and is subject to wider temperature fluctuations. No matter how it happens, **it is going to happen**.
 
 **What shall we do when it does?** Simple. Buy a new drive. Set it up as above, create the first backup and then the incrementals as you've always done. Recycle the old drive. There's no need to worry about wiping it clean because everything is encrypted. It is enough to destroy whatever copies of the encryption key you have lying around.
 
@@ -810,7 +813,7 @@ The basic process is:
 
 I'm working with FreeBSD 10.2, which is the production branch at the time of writing. There are some [pre-made images](https://ftp.heanet.ie/pub/FreeBSD/releases/arm/armv6/ISO-IMAGES/10.2/) provided by the foundation but they're of 10.2-RELEASE, 10.2-STABLE has advanced a little since then. And since we're going to all the bother of building our own images, it makes sense to get the best available code. Also, rather crucially, these images do not support ZFS.
 
-The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth reading up on ([graphical examples](https://www.freebsd.org/doc/en/articles/releng/release-proc.html)). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and un-breaking as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything already in it play well together. When they're satisfied they 'tag' a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
+The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and un-breaking as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything already in it play well together. When they're satisfied they 'tag' a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
 
 Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, to get them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
 
@@ -864,7 +867,7 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 
 Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad-sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
 
-The *KERNCONF* is where the fun is. This is the specification of how to build the kernel for the RaspberryPi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
+The *KERNCONF* is the specification of how to build the kernel for the RaspberryPi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
 
 * Change 'ident' line from RPI-B to RPI-B-ZFS.
 * Add 'options KSTACK_PAGES=6' as required for ZFS (it needs extra memory).
@@ -1038,3 +1041,5 @@ You can also flash the image directly and make your changes live, grab a signed 
 	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
 
 Now go back to the start and fill in any missing steps.
+
+TODO tildes /home/
