@@ -705,7 +705,7 @@ Care & Feeding
 Upkeep
 -----
 
-From time to time connect into the remote system and check the system logs and messages for anything suspicious. Also consider updating any installed packages and keeping up to date with the STABLE branch. *pkg* and *freebsd-update* make this easy.
+From time to time connect into the remote system and check the system logs and messages for anything suspicious. Also consider updating any installed packages and keeping up to date with errata patches. *pkg* and *freebsd-update* make this easy.
 
 	root@knox# less +G /var/log/messages
 	root@knox# pkg upgrade
@@ -771,17 +771,17 @@ One day, one of the following things will happen:
 
 In all but the last case, we must consider the drive totally lost. It might happen to your local drive first, because it experiences more activity than the backup. It might happen to the remote drive first, because it lives in a room without central heating and is subject to wider temperature fluctuations. No matter how it happens, **it is going to happen**.
 
-*What shall we do when it does?* Simple. Buy a new drive. Set it up as above, create the first backup and then the incrementals as you've always done. Recycle the old drive. There's no need to worry about wiping it clean because everything is encrypted. It is enough to destroy whatever copies of the encryption key you have lying around.
+**What shall we do when it does?** Simple. Buy a new drive. Set it up as above, create the first backup and then the incrementals as you've always done. Recycle the old drive. There's no need to worry about wiping it clean because everything is encrypted. It is enough to destroy whatever copies of the encryption key you have lying around.
 
-*I deleted a file by accident, can I recover it from a snapshot?* Naturally, you don't even need to access the remote system, snapshots are accessible through the hidden *.zfs* directory at the root of your pool. e.g. */wd/.zfs/snapshot/2015-07-24T23:35:18Z*
+**I deleted a file by accident, can I recover it from a snapshot?** Naturally, you don't even need to access the remote system, snapshots are accessible through the hidden *.zfs* directory at the root of your pool. e.g. */wd/.zfs/snapshot/2015-07-24T23:35:18Z*
 
-*What if the backup computer dies, but the drive is okay?* Recycle the computer. Buy/liberate another one, install FreeBSD as above, then just connect the drive and carry on.
+**What if the backup computer dies, but the drive is okay?** Recycle the computer. Buy/liberate another one, install FreeBSD as above, then just connect the drive and carry on.
 
-*What about slow, creeping drive death, as opposed to total failure?* ZFS has your back. Take a look at '*zpool status*' every now and then on both machines (the remote will have to be attached of course). If you see any checksum errors, buy a new disk. Every so often, run '*zpool scrub*' on both disks to have ZFS read and verify every sector, then check the status and do what you need to do. Life is too short for bad hard disks, and 2TiB is a lot of data to loose.
+**What about slow, creeping drive death, as opposed to total failure?** ZFS has your back. Take a look at '*zpool status*' every now and then on both machines (the remote will have to be attached of course). If you see any checksum errors, buy a new disk. Every so often, run '*zpool scrub*' on both disks to have ZFS read and verify every sector, then check the status and do what you need to do. Life is too short for bad hard disks, and 2TiB is a lot of data to loose.
 
-*My local disk failed, can I swap in my backup?* Probably. Use *geli* to attach it locally (with the key) and then use '*zpool import*'. Then buy a new drive and go through the motions again.
+**My local disk failed, can I swap in my backup?** Probably. Use *geli* to attach it locally (with the key) and then use '*zpool import*'. Then buy a new drive and go through the motions again.
 
-*My local disk failed, but I can't physically access the remote one, what do I do?* You've got your SSH and GELI keys backed up somewhere, right? Use those to access the remote machine and pull down any files you need (mount the datasets with *'zfs mount -a'*). You *could* try a full backup onto a new disk over the Internet, but you'll be waiting a while, and your friendly server co-location administrators might be getting calls from their ISP. A better approach would be to buy a new drive, have it delivered to wherever the remote system lives and have someone connect it. Set it up as a second pool (use *geli*), do a local send/receive and once it holds a full copy politely ask that it be posted to you. Note: Some systems can't supply enough USB power for two high drain device like hard drives. If you're using a USB powered drive on the machine, connect the second drive through a powered hub or use one that has its own power.
+**My local disk failed, but I can't physically access the remote one, what do I do?** You've got your SSH and GELI keys backed up somewhere, right? Use those to access the remote machine and pull down any files you need (mount the datasets with *'zfs mount -a'*). You *could* try a full backup onto a new disk over the Internet, but you'll be waiting a while, and your friendly server co-location administrators might be getting calls from their ISP. A better approach would be to buy a new drive, have it delivered to wherever the remote system lives and have someone connect it. Set it up as a second pool (use *geli*), do a local send/receive and once it holds a full copy politely ask that it be posted to you. Note: Some systems can't supply enough USB power for two high drain device like hard drives. If you're using a USB powered drive on the machine, connect the second drive through a powered hub or use one that has its own power.
 
 Further Reading
 ==============
@@ -1025,7 +1025,7 @@ Once you've found the new addition, connect in using a key signed by the *knox-c
 
 One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the famous [Ports](https://www.freebsd.org/ports/) tree makes it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything that task needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that ports tree from *portsnap* is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
 
-To use these packages, grab the *pkg-static* binary and use that to install *pkg* properly.
+To use these packages, grab the *pkg-static* binary from the folder and use that to install *pkg* properly.
 
 	root@knox# ./pkg-static add pkg-1.6.3.txz
 
@@ -1038,7 +1038,7 @@ Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify tha
 	hugh@local$ prefix="https://github.com/hughobrien/zfs-remote-mirror/raw/master"
 	hugh@local$ fetch $prefix/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
 	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
-	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 45000618bd93d352bdd7d16d24671d515b1d054971ac4a4885ef8f0cb494ee32
+	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 18761793070c96480fb40ec2b8f99ec5a0fa80e2056c8f9f2d279a7ed446dbdb
 	hugh@local$ xz -k FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
 	# now use mdconfig and mount
 
