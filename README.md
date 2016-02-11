@@ -508,7 +508,7 @@ Wonderful, now we tear it all down.
 I securely erased the key anyway...couldn't help myself. Detach the *geli* and verify it's been removed:
 
 	root@knox# geli detach /dev/da0
-	root@knox# geli list
+	root@knox# geli status
 
 You should only see references to the encrypted swap, probably on *ada0p3.eli*. No *da0.eli* in sight. What does *eli* stand for anyway? I haven't been able to [figure that out](https://forums.freebsd.org/threads/what-does-geli-stand-for-not-what-does-it-do.42546/).
 
