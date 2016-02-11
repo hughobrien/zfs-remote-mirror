@@ -1043,13 +1043,17 @@ You can also flash the image directly and make your changes live, grab a signed 
 
 Now go back to the start and fill in any missing steps.
 
-P.S. Once I have the image fully configured, I like to edit */etc/fstab* and make the *msdos* and *ufs* partitions readonly, and create a tmpfs for all of */var*. This means that if the system loses power when the external drive isn't in action, there should never be any issues with it coming back up clean. This probably isn't for everyone though.
+One last thing, once I have the image fully configured, I like to edit */etc/fstab* and make system read-only, and create a tmpfs for all of */var*. This means that if the system loses power when the external drive isn't in action, there should never be any issues with it coming back up clean. Reboot after this change.
 
 	/dev/mmcsd0s1   /boot/msdos     msdosfs ro,noatime      0 0
 	/dev/mmcsd0s2a  /               ufs ro,noatime          1 1
 	/dev/mmcsd0s3.eli       none    swap    sw      0       0
 	tmpfs   /tmp    tmpfs   rw,mode=1777    0       0
 	tmpfs   /var    tmpfs   rw      0       0
+
+If you find yourself needing to make changes to the system, you can remount it with:
+
+	root@knox# mount -o rw / # use -o ro to put it back
 
 Appendix - ECC Memory
 ====================
