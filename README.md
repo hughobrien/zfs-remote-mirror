@@ -580,7 +580,7 @@ Back to user level, and drum roll please...
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ zfs send -Rev "wd@$snapname" | ssh knox-send
 
-Be preparted to wait...
+Be prepared to wait...
 
 Your data is now safe, secure, and (soon to be) far away. Accessible to only someone with your SSH key and its password (or physical access) and readable only by someone with your geli key.
 
@@ -814,7 +814,7 @@ The basic process is:
 
 I'm working with FreeBSD 10.2, which is the production branch at the time of writing. There are some [pre-made images](https://ftp.heanet.ie/pub/FreeBSD/releases/arm/armv6/ISO-IMAGES/10.2/) provided by the foundation but they're of 10.2-RELEASE, 10.2-STABLE has advanced a little since then. And since we're going to all the bother of building our own images, it makes sense to get the best available code. Also, rather crucially, these images do not support ZFS.
 
-The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and un-breaking as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything in it work well together. When they're satisfied they *tag* a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement, and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
+The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and being repaired as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything in it work well together. When they're satisfied they *tag* a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement, and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
 
 Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, bringing them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
 
@@ -1050,11 +1050,11 @@ It's been pointed out that if ZFS detects a bad checksum while reading, it will 
 A *scrub* operation, which is normally used to check the disks, might end up funnelling all the data through a bad memory module. However, there are a few factors that mitigate this potential disaster:
 
 * ZFS will take the pool offline if it detects too may errors, thus reducing the fallout.
-* ZFS will only attempt to auto-correct the data if it has some redundancy information such as provided by the *copies* paramater or by parity data. We use neither in this setup, though you may optionally enable *copies* on a per-dataset basis.
+* ZFS will only attempt to auto-correct the data if it has some redundancy information such as provided by the *copies* parameter or by parity data. We use neither in this setup, though you may optionally enable *copies* on a per-dataset basis.
 
-[Here](https://research.cs.wisc.edu/adsl/Publications/zfs-corruption-fast10.pdf) is a paper which analysed the result of many different types of memory corruption on a running ZFS system. The general conclusion is that while ZFS is not immune to memory issues, more often than not it will crash when it encounters them. Without performing a similar analysis for simpler filesystems, we cannot definitively say whether ZFS handles memory issues better or worse.
+[Here is a paper](https://research.cs.wisc.edu/adsl/Publications/zfs-corruption-fast10.pdf) which analysed the result of many different types of memory corruption on a running ZFS system. The general conclusion is that while ZFS is not immune to memory issues, more often than not it will crash when it encounters them. Without performing a similar analysis for simpler file-systems, we cannot definitively say whether ZFS handles memory issues better or worse than its contemporaries.
 
-As a general rule, use ECC memory if possible. Though I suspect that if your data were so critical to require it, you would be using a more dedicated, specialised backup solution.
+As a general rule, use ECC memory if possible. Though I suspect that if your data were so critical as to require it, you would be using a more dedicated, specialised backup solution.
 
 Here's some more debate on the matter:
 
