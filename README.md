@@ -2,6 +2,8 @@ ZFS Remote Mirrors for Home Use
 ===============================
 **Update: Now with pre-built ZFS RaspberryPi image! Jump to the Appendix for more information.**
 
+**ECC Update: It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module. This makes *scrub* operations particularly treacherous. For this reason, ECC memory is really, really recommended.**
+
 Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
 But we can do better. Magnetic storage is cheap; and our data is valuable. We don't need live synchronisation, cloud scaling, SLAs, NSAs, terms of service, lock-ins, buy-outs, up-sells, shut-downs, DoSs, fail whales, pay-us-or-we'll-deletes, or any of the noise that comes with using someone else's infrastructure. We'd just like a big drive that we can backup to, reliably, easily, and privately.
@@ -41,7 +43,7 @@ I'm specifying a laptop/SBC as it's a lot more palatable a device to ask someone
 
 Please note, that ZFS is designed for serious, enterprise grade environments. Using it on older consumer hardware is doing an injustice to its many features, and the kernel will remind you of this on every boot. That said, it can be squeezed into this restricted use case, and you can have many of the benefits most important to a backup system. However, if you can supply more modern hardware, do. A system with ECC memory would be a wise investment also. Even if it is an older model.
 
-If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the boot-screen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this. (I don't currently know of an easy way to test the memory on a SBC system.)
+If you must go with "previously loved", hardware, do yourself a favour and run a memory test first. Faulty DIMMs are a heartbreak one only tolerates once. [MemTest86+](http://www.memtest.org/) is a good choice, but their ISOs don't work on USB drives, only CDs. You could mess about with *gpart* to create a [bootable partition manually](http://forum.canardpc.com/threads/28875-Linux-HOWTO-Boot-Memtest-on-USB-Drive?p=1396798&viewfull=1#post1396798) but the good folks at Canonical added *memtest* to the boot-screen of some Ubuntu installers, which can be dandily *dd*'d to a memory stick. I can attest to [14.04.2 LTS Server](http://releases.ubuntu.com/trusty/) having this. SBC users can try *[memtester](http://pyropus.ca/software/memtester/)*, but as it runs on top of a full kernel it can't test the memory the kernel occupies.
 
 Why not mirror the drives locally?
 ----------------------------------
@@ -714,7 +716,7 @@ From time to time connect into the remote system and check the system logs and m
 
 You will need to reboot if *freebsd-update* makes any changes.
 
-It's also sound practice to occasionally exercise the disks, both your local and the remote one with a *scrub* operation. The instructs ZFS to re-read every block on the disk and ensure that they checksum correctly. Any errors can be found will be logged and they probably signal that you should replace the disk.
+It's also sound practice to occasionally exercise the disks, both your local and the remote one with a *scrub* operation. The instructs ZFS to re-read every block on the disk and ensure that they checksum correctly. Any errors can be found will be logged and they probably signal that you should replace the disk. **CAUTION:** Only do this if you have ECC memory. See note at the top of the guide.
 
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ ssh knox-shell
@@ -779,7 +781,7 @@ In all but the last two cases, we must consider the drive totally lost. It might
 
 **What if the backup computer dies, but the drive is okay?** Recycle the computer. Buy/liberate another one, install FreeBSD as above, then just connect the drive and carry on.
 
-**What about slow, creeping drive death, as opposed to total failure?** ZFS has your back. Take a look at '*zpool status*' every now and then on both machines (the remote will have to be attached of course). If you see any checksum errors, buy a new disk. Every so often, run '*zpool scrub*' on both disks to have ZFS read and verify every sector, then check the status and do what you need to do. Life is too short for bad hard disks, and 2TiB is a lot of data to loose.
+**What about slow, creeping drive death, as opposed to total failure?** ZFS has your back. Take a look at '*zpool status*' every now and then on both machines (the remote will have to be attached of course). If you see any checksum errors, buy a new disk.
 
 **My local disk failed, can I swap in my backup?** Probably. Use *geli* to attach it locally (with the key) and then use '*zpool import*'. Then buy a new drive and go through the motions again.
 
