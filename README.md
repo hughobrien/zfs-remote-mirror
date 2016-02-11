@@ -1039,6 +1039,7 @@ Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify tha
 	# use mdconfig and mount now
 
 You can also flash the image directly and make your changes live, grab a signed login key to do this:
+
 	root@local# xzcat FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz | dd of=/dev/mmcsd0 bs=1m
 	# transfer to RPi
 	hugh@local$ fetch $prefix/keys/knox-login 
