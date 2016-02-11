@@ -2,7 +2,7 @@ ZFS Remote Mirrors for Home Use
 ===============================
 **Update: Now with pre-built ZFS RaspberryPi image! Jump to the Appendix for more information.**
 
-**ECC Update: It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module. This makes *scrub* operations particularly treacherous. For this reason, ECC memory is really, really recommended.**
+**ECC Update: It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module, potentially attempting to *correct* it and thus actually corrupting it. This makes *scrub* operations particularly treacherous. For this reason, ECC memory is really, really, recommended.**
 
 Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
