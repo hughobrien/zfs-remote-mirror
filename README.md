@@ -1,6 +1,6 @@
 ZFS Remote Mirrors for Home Use
 ===============================
-**Update: Now with pre-built ZFS RaspberryPi image! Sections of the guide marked 'π' can be skipped if using the image. Jump to the Appendix for more information.**
+**Update: Now with pre-built ZFS RaspberryPi image! Jump to the Appendix for more information.**
 
 Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
@@ -110,7 +110,7 @@ For future reference, all the commands I show you are written to run on a FreeBS
 
 Server Setup
 ============
-OS Installation π
+OS Installation 
 ---------------
 Step one, is of course, to install FreeBSD. If this sounds daunting to you, take a look at the excellent [Handbook](https://www.freebsd.org/doc/handbook/). There's different ways to do this based on what platform you're using but here's a run down of some answers to the questions the installer will ask you on an i386/amd64 target. **Do not** connect your USB drive yet.
 
@@ -1034,10 +1034,10 @@ Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify tha
 	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
 	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 45000618bd93d352bdd7d16d24671d515b1d054971ac4a4885ef8f0cb494ee32
 
+You can also flash the image directly and make your changes live, grab a signed login key to do this:
+
 	hugh@local$ fetch https://github.com/hughobrien/zfs-remote-mirror/raw/master/keys/knox-login 
 	hugh@local$ fetch https://github.com/hughobrien/zfs-remote-mirror/raw/master/keys/knox-login-cert.pub
 	hugh@local$ ssh -i knox-login hugh@192.168.1.13 # replace with your assigned IP
 
 	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
-
-	Voila.
