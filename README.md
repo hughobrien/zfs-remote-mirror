@@ -937,7 +937,7 @@ Replace the contents of *img/dos/config.txt* with the following:
 
 This file is fully described [here](http://elinux.org/RPiconfig) and [here](https://www.raspberrypi.org/documentation/configuration/config-txt.md). In essence, we're specifying that the on-board GPU should only get 32MB of the shared 512MB of memory, and we're upping the frequencies of the main components just a little bit. This gives us a little performance boost, while still remaining quite conservative.
 
-Now for some FreeBSD specific changes. Edit/create the *img/ufs/boot/loader.conf* file, and make it:
+Now for some FreeBSD specific changes. Create the *img/ufs/boot/loader.conf* file, and make it:
 
 	zfs_load="YES"
 	vm.kmem_size="180M"
@@ -1005,31 +1005,39 @@ Remember to change the user. Now some SSH tasks. Install the fingerprint of the 
 	root@local# ssh-keygen -t ed25519 -f /home/hugh/knox/img/ufs/etc/ssh/ssh_host_ed25519_key # pres <enter> when prompted for a passphrase
 
 
-I lied, we should also add some entropy.
+Note the key fingerprint generated from the above. Lastly, we should also add some entropy.
 
 	root@local# dd if=/dev/random of=/home/hugh/knox/img/ufs/entropy bs=4k count=1
 	root@local# chmod 600 /home/hugh/knox/img/ufs/entropy
 
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
 
-	root@local# cd
 	root@local# umount /home/hugh/knox/img/dos /home/hugh/knox/img/ufs
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
 	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
-You can check the progress of the *dd* operation by typing <ctrl-t>. Put the SD card in your RPi, and boot it up. The first boot may be a little slow as it has to generate host SSH keys, but this is a one-time delay. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
+You can check the progress of the *dd* operation by typing ctrl-t . Put the SD card in your RPi, and boot it up. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
 
 	hugh@local$ nmap -Pn -p ssh --open <your local network>/<your CIDR mask>  # probably 192.168.1.0/24
 
 Once you've found the new addition, connect in using a key signed by the *knox-ca* key. Then, go back to the start of this guide, filling in all the blanks. That wasn't so bad was it?
 
-One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the infamous Ports tree make it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything that needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that a *portsnap* fetched ports tree is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
+One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the famous [Ports](https://www.freebsd.org/ports/) tree makes it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything that task needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that ports tree from *portsnap* is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://github.com/hughobrien/zfs-remote-mirror/raw/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh', and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+Congratulations on making it to the end, as a reward, [here's a pre-made RPi image file](https://github.com/hughobrien/zfs-remote-mirror/raw/master/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img) containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh' (you can change that after logging in), and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
 
 Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
+
 	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
-	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 5cdd85a03c1d5475ce72fc20b9623f50936b72ab61a614524385a11f07705622 TODO update
+	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 45000618bd93d352bdd7d16d24671d515b1d054971ac4a4885ef8f0cb494ee32
+
+	hugh@local$ fetch https://github.com/hughobrien/zfs-remote-mirror/raw/master/keys/knox-login 
+	hugh@local$ fetch https://github.com/hughobrien/zfs-remote-mirror/raw/master/keys/knox-login-cert.pub
+	hugh@local$ ssh -i knox-login hugh@192.168.1.13 # replace with your assigned IP
+
+	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
+
+	Voila.
