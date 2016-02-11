@@ -1,6 +1,6 @@
 ZFS Remote Mirrors for Home Use
 ===============================
-**Update: Now with pre-built ZFS RaspberryPi image! Jump to the Appendix for more information.**
+**Update: Now with pre-built ZFS Raspberry Pi image! Jump to the Appendix for more information.**
 
 **ECC Update: The requirement for ECC memory with ZFS is a little contentious, more information in the Appendix.**
 
@@ -818,7 +818,7 @@ The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng
 
 Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, bringing them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
 
-I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our RaspberryPi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
+I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our Raspberry Pi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
 
 * head - no, too unstable.
 * stable/10 - currently working towards 10.3, so not quite stable.
@@ -868,7 +868,7 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 
 Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
 
-The *KERNCONF* is the specification of how to build the kernel for the RaspberryPi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
+The *KERNCONF* is the specification of how to build the kernel for the Raspberry Pi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
 
 * Change 'ident' line from RPI-B to RPI-B-ZFS.
 * Add 'options KSTACK_PAGES=6' as required for ZFS (it needs extra memory).
@@ -911,7 +911,7 @@ If you're using a card size other than 4GB you should tweak that 3000 figure, it
 
 Just one last change, there's a DEFINE statement in the *opensolaris* code that causes some build issues, thankfully it's not needed so we can simply delete it. Edit the file *~/knox/src/sys/cddl/compat/opensolaris/sys/cpuvar.h* and delete the line *#define>cpu_id>-cpuid*, it's on line 50 of the file at the time of writing. [Here's the patch](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/cpuvar.h.patch).
 
-With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the RaspberryPi version of *uboot* installed, which will be automatically placed into the image.
+With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the Raspberry Pi version of *uboot* installed, which will be automatically placed into the image.
 
 	root@local# pkg install u-boot-rpi
 	root@local# cd /home/hugh/knox/crochet
