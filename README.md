@@ -918,26 +918,11 @@ This will take some time.
 Once it's finished, you'll have a 4GB image that's ready to be put on the SD card. But not so fast, we can do most of our post-installation configuration changes on the image itself, so that it boots up fully ready. To do this, we first mount the image as a memory device.
 
 	root@local# cd /home/hugh/knox
-	root@local# mkdir -p img/dos img/ufs
+	root@local# mkdir img
 	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img # note the name this returns, it will probably be md0.
-	root@local# mount_msdosfs /dev/md0s1 img/dos
-	root@local# mount /dev/md0s2a img/ufs
+	root@local# mount /dev/md0s2a img
 
-Replace the contents of *img/dos/config.txt* with the following:
-
-	device_tree=rpi.dtb
-	device_tree_address=0x100
-	disable_commandline_tags=1
-	gpu_mem=32
-	kernel=u-boot.img
-	hdmi_safe=1
-	arm_freq=850
-	sdram_freq=450
-	gpu_freq=300
-
-This file is fully described [here](http://elinux.org/RPiconfig) and [here](https://www.raspberrypi.org/documentation/configuration/config-txt.md). In essence, we're specifying that the on-board GPU should only get 32MB of the shared 512MB of memory, and we're upping the frequencies of the main components just a little bit. This gives us a little performance boost, while still remaining quite conservative.
-
-Now for some FreeBSD specific changes. Create the *img/ufs/boot/loader.conf* file, and make it:
+Create the *img/boot/loader.conf* file, and make it:
 
 	zfs_load="YES"
 	vm.kmem_size="180M"
@@ -946,7 +931,7 @@ Now for some FreeBSD specific changes. Create the *img/ufs/boot/loader.conf* fil
 
 This causes the ZFS module to load with the kernel, sets the kernel memory size at a hard 180MB, which should be large enough for ZFS's needs, and restricts the size of the [ARC](https://en.wikipedia.org/wiki/Adaptive_replacement_cache), leaving more of that 180MB for the meat of ZFS.
 
-Now edit *img/ufs/etc/fstab*.
+Now edit *img/etc/fstab*.
 
 	/dev/mmcsd0s1   /boot/msdos     msdosfs rw,noatime      0 0
 	/dev/mmcsd0s2a  /               ufs rw,noatime          1 1
@@ -958,7 +943,7 @@ Now edit *img/ufs/etc/fstab*.
 
 The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks are easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
 
-Here's *img/ufs/etc/rc.conf*:
+Here's *img/etc/rc.conf*:
 
 	hostname="knox"
 	keymap="uk"
@@ -982,11 +967,11 @@ Here's *img/ufs/etc/rc.conf*:
 
 Transatlantic sorts may wish to change the keymap to 'us'. Details of these choices are presented further up in this document, the only difference being that I also disable cron here.
 
-We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *img/ufs/etc/ttys* with an empty file:
+We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *img/etc/ttys* with an empty file:
 
-	root@local# echo > /home/hugh/knox/img/ufs/etc/ttys
+	root@local# echo > /home/hugh/knox/img/etc/ttys
 
-Here's *img/ufs/etc/ssh/sshd_config*, this is detailed earlier in the document.
+Here's *img/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
 	HostKey /etc/ssh/ssh_host_ed25519_key
 	TrustedUserCAKeys /etc/ssh/knox-ca
@@ -1001,18 +986,18 @@ Here's *img/ufs/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
 Remember to change the user. Now some SSH tasks. Install the fingerprint of the signing key you made way back up in the section about *sshd_config*, and generate the host key for the device while we're at it.
 
-	root@local# ssh-keygen -y -f ~/your-ca-key > /home/hugh/knox/img/ufs/etc/ssh/knox-ca
-	root@local# ssh-keygen -t ed25519 -f /home/hugh/knox/img/ufs/etc/ssh/ssh_host_ed25519_key # pres <enter> when prompted for a passphrase
+	root@local# ssh-keygen -y -f ~/your-ca-key > /home/hugh/knox/img/etc/ssh/knox-ca
+	root@local# ssh-keygen -t ed25519 -f /home/hugh/knox/img/etc/ssh/ssh_host_ed25519_key # pres <enter> when prompted for a passphrase
 
 
 Note the key fingerprint generated from the above. Lastly, we should also add some entropy.
 
-	root@local# dd if=/dev/random of=/home/hugh/knox/img/ufs/entropy bs=4k count=1
-	root@local# chmod 600 /home/hugh/knox/img/ufs/entropy
+	root@local# dd if=/dev/random of=/home/hugh/knox/img/entropy bs=4k count=1
+	root@local# chmod 600 /home/hugh/knox/img/entropy
 
 All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at 'dmesg | tail' to see what device name it gets. Mine is *mmcsd0*.
 
-	root@local# umount /home/hugh/knox/img/dos /home/hugh/knox/img/ufs
+	root@local# umount /home/hugh/knox/img
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
 	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
