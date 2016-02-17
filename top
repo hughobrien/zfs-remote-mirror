@@ -1,0 +1,28 @@
+last pid:   722;  load averages:  2.48,  2.42,  2.37  up 0+01:07:58    17:48:03
+36 processes:  4 running, 31 sleeping, 1 waiting
+
+Mem: 10M Active, 10M Inact, 93M Wired, 13M Buf, 349M Free
+ARC: 24M Total, 18M MRU, 6544K Anon, 53K Header, 94K Other
+Swap: 702M Total, 702M Free
+
+
+  PID USERNAME    THR PRI NICE   SIZE    RES STATE    TIME    WCPU COMMAND
+  674 root          1  63    -     0K  6584K RUN     11:54  31.40% [g_eli[0] da0]
+  667 root          1  62    0 18648K  7588K RUN     11:25  25.54% sshd: root@notty (sshd)
+   14 root          5 -68    -     0K  6680K -        6:51  14.75% [usb]
+  677 root          1  -8    0 11780K  3104K piperd   1:39   2.83% zfs receive -Fu wd
+    0 root        139  -8    0     0K  9872K -        3:28   2.54% [kernel]
+   11 root         24 -84    -     0K  7136K WAIT     1:21   1.46% [intr]
+   13 root          1 -16    -     0K  6584K -        0:34   0.68% [rand_harvestq]
+   12 root          3  -8    -     0K  6632K -        0:18   0.00% [geom]
+    3 root          6 -16    -     0K  6712K tx->tx   0:12   0.00% [zfskern]
+    2 root          2  -8    -     0K  6608K -        0:09   0.00% [cam]
+  504 root          2  40    0 13352K 13288K usem     0:05   0.00% /usr/sbin/ntpd -g -c /etc/ntp.conf -p 
+   16 root          1 -16    -     0K  6584K -        0:02   0.00% [schedcpu]
+  618 root          1  40    0 18648K  6244K select   0:02   0.00% sshd: root@pts/0 (sshd)
+  296 root          1  40    0  9336K  1060K select   0:01   0.00% /sbin/devd
+   53 root          1  40    -     0K  6584K geli:w   0:00   0.00% [g_eli[0] mmcsd0s3]
+   17 root          1   8    0 10856K  2184K wait     0:00   0.00% sh /etc/rc autoboot
+  620 root          1  16    0 11332K  3268K pause    0:00   0.00% -csh (csh)
+  507 root          1  40    0 10368K   976K select   0:00   0.00% /usr/sbin/powerd -M 800 -m 300 -n hiad
+

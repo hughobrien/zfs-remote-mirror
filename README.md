@@ -532,9 +532,9 @@ Back to user level, and drum roll please...
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ zfs send -Rev "wd@$snapname" | ssh knox-send
 
-Be prepared to wait...I get about 2.5MB/s.
+Be prepared to wait...I get about 2.5MB/s. [Here's](https://github.com/hughobrien/zfs-remote-mirror/blob/master/top) the output from *top* while the system is receiving a snapshot over the local network, you can see the load is roughly split between *geli* and *ssh*, indicating that the RPi's processor isn't so snappy for cryptographic operations. Interestingly ZFS is using fairly little resources, and as you can see the system memory is pretty empty. Perhaps we needn't have been so concerned with saving every byte.
 
-Your data is now safe, secure, and (soon to be) far away. Accessible to only someone with your SSH key and its password (or physical access) and readable only by someone with your geli key.
+When it's done, your data will be safe, secure, and (soon to be) far away. Accessible to only someone with your SSH key and its password (or physical access) and readable only by someone with your geli key.
 
 Incremental Backups
 -------------------
