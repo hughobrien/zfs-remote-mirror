@@ -142,36 +142,6 @@ Finally, swap space used to be best placed at the edge of the platter (the last 
 
 Thankfully, the FreeBSD installer will choose all of the above tweaks by default if you use guided mode.
 
-Users
------
-The hash/pound/[octothorpe](https://en.wiktionary.org/wiki/octothorpe) symbol (**#**) at the start of a prompt indicates **root** permissions. When I use it in-line as below it's a comment that you should read but not type in. Some config files will treat it as a comment, others, like SSH, will treat it as an error. Terms in angle brackets refer to keys you should press.
-
-	# adduser
-
-	Username: hugh # you can use your own name if you want
-	Full name: <enter> # this is only useful on multi-(human)user systems
-	Uid (Leave empty for default): <enter>
-	Login group [hugh]: <enter>
-	Login group is hugh. Invite hugh into other groups? []: wheel # this grants su access
-	Login class [default]: <enter>
-	Shell (sh csh tcsh nologin) [sh]: tcsh # unless you know better
-	Home directory [/home/hugh]: <enter>
-	Home directory permissions (Leave empty for default): <enter>
-	Use password-based authentication? [yes]: <enter>
-	Use an empty password? (yes/no) [no]: <enter>
-	Use a random password? (yes/no) [no]: <enter>
-	Enter password: # use the root password
-	Enter password again: # reboot the system. No, I kid.
-	Lock out the account after creation? [no]: <enter>
-	...
-	...
-	OK? (yes/no): yes
-	adduser: INFO: Successfully added (hugh) to the user database.
-	Add another user? (yes/no): no
-	Goodbye!
-
-Yes, it's really that chatty, but look at [*man pw*](https://www.freebsd.org/cgi/man.cgi?pw(8)) to see what the alternative is. If you're wondering about the term *wheel* [here's an explanation](https://unix.stackexchange.com/questions/1262/where-did-the-wheel-group-get-its-name).
-
 Connecting
 ----------
 Now we need to discover what IP address the DHCP server leased to the system. Ignore *lo0* as it's the loopback interface. Also note the interface name, *bfe0* in this case. Linux users may be used to *eth0* style naming, but in FreeBSD the interface is named after the driver it uses, a [Broadcom](https://www.freebsd.org/cgi/man.cgi?query=bfe&sektion=4) one in this case.
@@ -208,13 +178,13 @@ Edit your **local** *~/.ssh/config* and insert the following:
 	HashKnownHosts yes
 
 	Host knox
-		User hugh
-		HostName 192.168.1.23 # We'll swap in the FQDN later
-		HostKeyAlgorithms ssh-ed25519
+		User root
+		HostName 192.168.1.13 # We'll swap in the FQDN later
 
 Now we can simply use:
 
 	hugh@local$ ssh knox
+	root@knox#
 
 There'll be a prompt to accept the host key as it's the first time *ssh* has seen it. If you think you are currently the victim of a LAN scale MitM attack you can compare the displayed key to the one on the new system before accepting. You may also want to switch to a low-sodium diet.
 
@@ -225,16 +195,11 @@ Now that we're in, we can use the copy/paste features of our terminal to make th
 /etc/rc.conf
 ------------
 
-Use *su* to get a root shell.
-
-	hugh@knox$ su
-	root@knox#
-
 We'll be editing several config files so I hope you know your *vi* key-bindings. If not, there's *ee*, which feels like a tricycle after *vi*, but I digress. **Replace** */etc/rc.conf* with the following. You'll have to supply your own network adapter name gleaned from *ifconfig*.
 
 	hostname="knox"
-	keymap="uk" # delete this line for US keyboard layout
-	ifconfig_bfe0="DHCP" # the equivalent of this line may already be present
+	keymap="uk" # use 'us' for USA layouts. Full selection in /usr/share/vt/keymaps
+	ifconfig_bfe0="DHCP" # Use your adapter's name, though the equivalent of this line may already be present
 
 	sshd_enable="YES"
 	ntpd_enable="YES" # keep the system regular
@@ -265,17 +230,17 @@ Let's have *ntpd* synchronise the clock before we proceed:
 
 /etc/fstab
 ---------
-This is the file system tab, which used to be a listing of all the file-systems the kernel should mount at boot time, but is fading a little in importance these days with removable devices and ZFS. It's not obsolete yet though. Here's the contents of mine, note that the fields are separated by tabs, which is why that zero looks so lonesome.
+This is the file system tab, which used to be a listing of all the file-systems the kernel should mount at boot time, though it's not as singular these days with the advent of removable devices and ZFS. Here's the contents of mine, note that the fields are separated by tabs, which is why that zero looks so lonesome.
 
 	# Device        Mountpoint      FStype  Options Dump    Pass#
-	/dev/ada0p2     /               ufs     rw      1       1
+	/dev/ada0p2     /               ufs     rw,noatime      1       1
 	/dev/ada0p3.eli none            swap    sw      0       0
 	tmpfs           /tmp            tmpfs   rw,mode=1777    0       0
 	tmpfs           /var/run        tmpfs   rw      0       0
 	tmpfs           /var/log        tmpfs   rw      0       0
 
 
-Your partition names may be different. I've enabled encrypted swap by appending the *.eli* suffix onto the device name of the swap partition. This ensures that no potentially sensitive memory is ever written out to disk in the clear. I've also added three *tmpfs* mounts; these are memory disks and are therefore cleared on reboot. By turning the */var/log* directory into a memory disk, we should be able to keep the main system drive spun down most of the time, reducing power and extending its life. Of course, this doesn't really matter on flash devices. The other two are really just used for storing tiny files that should be cleared between boots anyway, so it makes sense to hold them in memory.
+Your partition names may be different. I've enabled encrypted swap by appending the *.eli* suffix onto the device name of the swap partition. This ensures that no potentially sensitive memory is ever written out to disk in the clear. I've also added three *tmpfs* mounts; these are memory disks and are therefore cleared on reboot. By turning the */var/log* directory into a memory disk, we should be able to keep the main system drive spun down most of the time, reducing power and extending its life. Of course, this doesn't really matter on flash devices. The other two are really just used for storing tiny files that should be cleared between boots anyway, so it makes sense to hold them in memory. The *noatime* setting on the root partition tells the system not to bother updating timestamps when a file is read (but still when written), this should also help to keep the drives spun down.
 
 Be aware the using encrypted swap will prevent you from gathering automated crash dumps. This isn't a problem if your system isn't crashing, but if it starts to, switch back to regular swap (remove the *.eli* extension) and set *dumpdev="AUTO"* in */etc/rc.conf*. Then, after a panic, you can run *kgdb* against the kernel and the dump to isolate what function caused the issue. Hopefully you can forget this paragraph exists though.
 
@@ -290,7 +255,7 @@ This disables all but one of the virtual consoles, leaving ttyv1, not v0 as the 
 
 /boot/loader.conf
 -----------------
-I like this one, it controls the environment the kernel loads into. It's a mix of some power control options and ZFS tuning parameters that should improve performance and stability on low memory systems. ZFS is very fond of memory, and runs in the kernel address space, so by limiting it we avoid some nasty memory conditions. The values here are for a 512MB system, if you have more memory than that you might consider increasing them after researching what they do, but they'll work for now. You should probably omit the two *hint* lines on SBC systems, though they're likely harmless. Some deeper info on ZFS tuning is available [here](https://wiki.freebsd.org/ZFSTuningGuide).
+This controls the environment the kernel loads into. It's a mix of some power control options and ZFS tuning parameters that should improve performance and stability on low memory systems. ZFS is very fond of memory, and runs in the kernel address space, so by limiting it we avoid some nasty memory conditions. The values here are for a 512MB system, if you have more memory than that you might consider increasing them after researching what they do, but they'll work for now. You should probably omit the two *hint* lines on SBC systems, though they're likely harmless. Some deeper info on ZFS tuning is available [here](https://wiki.freebsd.org/ZFSTuningGuide).
 
 Note that this file isn't present by default.
 
@@ -308,23 +273,17 @@ Note that this file isn't present by default.
 ---------------------
 We're back to SSH now, and this is where I think things get really interesting. We're going to be using SSH's certificate authority features to authorise different keys. This means we give the system one key to love, honour, and obey, and then anything we sign with that key will work even if the system hasn't seen it before. Naturally, the CA key itself then should be protected with a password as good as the *root* password as it will essentially be another way of getting *root* access. Personally I think you should re-use the existing *root* password here but you may feel otherwise.
 
-Accept the default path for the key when prompted. We'll also want to copy the key over to our main machine without using *root* so copy it to the user's home directory.
+	hugh@local$ cd ~/.ssh
+	hugh@local$ ssh-keygen -t ed25519 -f knox-ca
+	hugh@local$ scp knox-ca.pub knox:/etc/ssh/knox-ca
 
-	root@knox# ssh-keygen -t ed25519
-	root@knox# cp /root/.ssh/id_ed25519 /usr/home/hugh/knox-ca
-	root@knox# chown hugh /usr/home/hugh/knox-ca
-
-Let's grab that key before we tweak *sshd*:
-
-	hugh@local$ scp knox:knox-ca ~/.ssh/
-
-Now, **replace** the contents of */etc/ssh/sshd_config* with the following (the whole thing). This avoids crypto suspected to be [NSA/FVEYS vulnerable](http://www.spiegel.de/media/media-35515.pdf). Be aware that this machine will now only be contactable by recent versions of OpenSSH, which if you're running a recent OS will be fine.
+Now, **on knox**, **replace** the contents of */etc/ssh/sshd_config* with the following (the whole thing). This avoids crypto suspected to be [NSA/FVEYS vulnerable](http://www.spiegel.de/media/media-35515.pdf). Be aware that this machine will now only be contactable by recent versions of OpenSSH, which if you're running a recent OS will be fine.
 
 	HostKey /etc/ssh/ssh_host_ed25519_key
-	TrustedUserCAKeys /root/.ssh/id_ed25519.pub
-	AllowUsers hugh
+	TrustedUserCAKeys /etc/ssh/knox-ca
+	AllowUsers root
 	PasswordAuthentication no
-	PermitRootLogin no
+	PermitRootLogin without-password
 	UseDNS no
 	UsePAM no
 	ChallengeResponseAuthentication no
@@ -334,23 +293,22 @@ Now, **replace** the contents of */etc/ssh/sshd_config* with the following (the 
 Then:
 
 	# service sshd restart
-	# rm /usr/home/hugh/knox-ca
 
 SSH Client
 ----------
-Now we'll generate a user identity and sign it with the CA key, and we'll do it properly by using *ssh-agent*. This allows us the security of having password protected keys without the hassle of entering the password every time. We unlock the key once, add it to the agent, and it's available until we logout. *ssh-agent* operates as a wrapper around a shell so firstly we have to work out what shell you're using.
+Now we'll generate a login and sign it with the CA key, and we'll do it properly by using *ssh-agent*. This allows us the security of having password protected keys without the hassle of entering the password every time. We unlock the key once, add it to the agent, and it's available until we logout. *ssh-agent* operates as a wrapper around a shell so firstly we have to work out what shell you're using.
 
 	hugh@local$ ssh-agent $(grep $(whoami) /etc/passwd | cut -d ':' -f 7)
 
 You can avoid that junk if you already know what shell you're using, *echo $0* or *echo $SHELL* can sometimes also contain the shell name, but not too reliably.
 
-Now we're in a sub-shell of the *ssh-agent* process, time to generate the new ID. You should use a password here, possibly the same password as you use to login to your local system, as this key will grant access to the user account on the remote system.
+Now we're in a sub-shell of the *ssh-agent* process, time to generate the new ID.
 
 	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-shell
 
 Sign the key. The *-I* flag is just a comment.
 
-	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-shell -n hugh ~/.ssh/knox-shell.pub
+	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-shell -n root ~/.ssh/knox-shell
 
 Now we tell *ssh* to use this key when connecting to *knox*. We can add some fanciness while we're at it. Edit your *~/.ssh/config*:
 
@@ -360,9 +318,9 @@ Now we tell *ssh* to use this key when connecting to *knox*. We can add some fan
 	ControlPersist 30m
 
 	Host knox
-		User hugh
-		HostName 192.168.1.23 # We'll swap in the FQDN later
-		HostKeyAlgorithms ssh-ed25519
+		User root
+		HostName 192.168.1.13 # We'll swap in the FQDN later
+		HostKeyAlgorithms ssh-ed25519 # Prevent downgrade attacks
 		IdentityFile ~/.ssh/knox-shell
 
 The *Control* settings allow us to reuse connections which greatly speeds things up. Now that the key has its bona-fides (the *knox-shell-cert.pub* file), we should unlock it and use it to login.
@@ -372,9 +330,9 @@ The *Control* settings allow us to reuse connections which greatly speeds things
 
 If you get dropped into your shell without being asked for a password then all is well. For fun, let's log out and in again to see how snappy the persisted connection makes things:
 
-	hugh@knox$ exit
+	root@knox# exit
 	hugh@local$ ssh knox
-	hugh@knox$ exit
+	root@knox# exit
 
 Splendid.
 
@@ -399,12 +357,12 @@ Install [any other packages](https://www.freebsd.org/doc/handbook/ports-finding-
 
 At this point we can reboot the system.
 
-	root@knox# sync; reboot
+	root@knox# reboot
 
-Log in again when it's back and read through the boot messages to see all went well. '+G' tells *less* to start at the end of the file.
+Log in again when it's back up and read through the boot messages to see all went well. '+G' tells *less* to start at the end of the file.
 
 	hugh@local$ ssh knox
-	hugh@knox$ less +G /var/log/messages
+	root@knox# less +G /var/log/messages
 
 You may, for instance, see:
 
@@ -518,7 +476,7 @@ ZFS datasets allow you to specify different attributes on different sets of data
 
 Plumbing
 ========
-Drop the following script into the *user's* home directory (as *root*), call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
+Drop the following script into *root*'s home directory, call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
 
 	#!/bin/sh
 
@@ -526,13 +484,6 @@ Drop the following script into the *user's* home directory (as *root*), call it 
 	zpool import wd
 	zfs receive -Fu wd
 	zpool export wd
-
-Then:
-
-	root@knox# chmod 4750 /usr/home/hugh/zfs-receive.sh
-
-This uses the *setuid* permissions feature to permit users who have execute permission on the file (*root* and members of the *wheel* group) to execute the file with the permissions of the file owner, *root*, in this case. Think of it as a safe way of allowing certain users to run privileged commands.
-
 
 What's this you say? I promised that we wouldn't store the key on the backup server? [Behold! The Named Pipe](https://en.wikipedia.org/wiki/Named_pipe)
 
@@ -544,23 +495,23 @@ Don't set any passwords on these two keys, we need them to be scriptable.
 Though these two keys are not password protected, but they are going to be completely restricted in what they can do. This allows us to use them in an automatic way, without the fear of them being abused.
 Now bless them. This will ask for the CA password.
 
-	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-fifo -O clear -O force-command="mkfifo -m 600 /tmp/k; cat - > /tmp/k; rm -P /tmp/k" -n hugh ~/.ssh/knox-fifo.pub
-	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="/usr/home/hugh/zfs-receive.sh" -n hugh ~/.ssh/knox-send.pub
+	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-fifo -O clear -O force-command="mkfifo -m 600 /tmp/k; cat - > /tmp/k; rm -P /tmp/k" -n root ~/.ssh/knox-fifo.pub
+	hugh@local$ ssh-keygen -s ~/.ssh/knox-ca -I knox-send -O clear -O force-command="/root/zfs-receive.sh" -n root ~/.ssh/knox-send.pub
 
-Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a [*fifo*](https://www.freebsd.org/cgi/man.cgi?query=mkfifo&sektion=1) on the */tmp* memory disk that we write to from *stdin*. This will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next, with root permissions. Upon reading the *fifo* the key is transferred directly from our local system to the *geli* process and never touches the disk, or the RAM disk.
+Terrified? Don't be. We're signing the keys we just created and specifying that if they are presented to the remote server, the only thing they can do is execute the described command. In the first case we create a [*fifo*](https://www.freebsd.org/cgi/man.cgi?query=mkfifo&sektion=1) on the */tmp* memory disk that we write to from *stdin*. This will block until someone reads from it, and that someone is the *zfs-receive.sh* script that we call next. Upon reading the *fifo* the key is transferred directly from our local system to the *geli* process and never touches the disk, or the RAM disk.
 
 And before you complain, that's not a [*useless use of cat*](https://image.slidesharecdn.com/youcodelikeasysadmin-141120122908-conversion-gate02/95/you-code-like-a-sysadmin-confessions-of-an-accidental-developer-10-638.jpg?cb=1416487010), it's required for *tcsh*.
 
 Let's add some shortnames for those keys in *~/.ssh/config*.
 
 	Host knox-fifo
-		User hugh
-		HostName 192.168.1.23
+		User root
+		HostName 192.168.1.13
 		IdentityFile ~/.ssh/knox-fifo
 
 	Host knox-send
-		User hugh
-		HostName 192.168.1.23
+		User root
+		HostName 192.168.1.13
 		IdentityFile ~/.ssh/knox-send
 
 Final Approach
@@ -696,7 +647,8 @@ A Tor hidden service is probably the most reliable fall back, but it will be slo
 Once you're worked out your method, adjust your config file on your **local** machine to use the new Internet accessible name.
 
 	Host knox
-		User hugh
+		User root
+		...
 		HostName knox.tld.cc # FQDN for Internet routing
 		#HostName 192.168.1.23 # Local address for initial backup
 		#HostName http://idnxcnkne4qt76tg.onion/ # Tor hidden service
@@ -721,7 +673,6 @@ It's also sound practice to occasionally exercise the disks, both your local and
 
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ ssh knox-shell
-	hugh@knox$ su
 	root@knox$ geli attach -dpk /tmp/k
 	root@knox$ zpool scrub wd
 	root@knox$ sleep 60; zpool status
@@ -730,6 +681,7 @@ It's also sound practice to occasionally exercise the disks, both your local and
 	.....
 	root@knox# zpool status # is it done?
 	root@knox# zpool detach
+	# geli detaches automatically here
 	root@knox# rm -P /tmp/k
 
 *zpool status* will give you some information about the speed of the operation and an estimated time to completion. Be aware that your drive is unlocked in this state.
@@ -811,7 +763,7 @@ The basic process is:
 * Apply customisations.
 * Build image.
 * Customise built image.
-* Boot RPi into the image and make final modifications.
+* Boot RPi.
 
 I'm working with FreeBSD 10.2, which is the production branch at the time of writing. There are some [pre-made images](https://ftp.heanet.ie/pub/FreeBSD/releases/arm/armv6/ISO-IMAGES/10.2/) provided by the foundation but they're of 10.2-RELEASE, 10.2-STABLE has advanced a little since then. And since we're going to all the bother of building our own images, it makes sense to get the best available code. Also, rather crucially, these images do not support ZFS.
 
@@ -836,16 +788,15 @@ I mention all of this, to answer the seemingly simple question, of what source b
 So, since we're building our own image, and compiling all our own code, we want the latest errata fixes from the latest feature branch. That's *releng/10.2*. Let's get the code. Depending on what version of FreeBSD you're currently running, you may already have an earlier version of this code in */usr/src*, but it's cleaner if we grab a fresh copy.
 
 	hugh@local$ mkdir ~/knox
-	hugh@local$ cd ~/knox
-	hugh@local$ svnlite co https://svn.freebsd.org/base/releng/10.2 src
+	hugh@local$ svnlite co https://svn.freebsd.org/base/releng/10.2 knox/src
 
-*svn* is the short command name for [Subversion](https://subversion.apache.org/), the source code management system the FreeBSD project uses *'co* is shorthand for the *checkout* subcommand, which has a special meaning within Subversion, but for our purposes just think of it as *download*). However, Subversion is a somewhat large package, so in the name of minimalism, FreeBSD ships *svnlite* instead, which is just fine for our needs. The *src* at the end is the destination folder.
+*svn* is the short command name for [Subversion](https://subversion.apache.org/), the source code management system the FreeBSD project uses *'co* is shorthand for the *checkout* subcommand, which has a special meaning within Subversion, but for our purposes just think of it as *download*). However, Subversion is a somewhat large package, so in the name of minimalism, FreeBSD ships *svnlite* instead, which is just fine for our needs. The last argument is the destination folder.
 
 This checkout process will take some time. On my system the process will occasionally fail due to network issues, leaving the source directory in an inconsistent state. If this happens, I recommend you delete the whole directory (*rm -rf ~/knox/src*) and try again.
 
 If it succeeds, you'll get a message similar to:
 
-	Checked out revision 295483
+	Checked out revision 295681
 
 Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all the hard work of image building for us. The package is maintained on GitHub, which is a little unusual for FreeBSD. If you have *git*, or indeed *git-lite* installed on your system you can get the code with:
 
@@ -863,11 +814,10 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 
 	board_setup RaspberryPi
 	option ImageSize 3900mb
-	option User hugh
 	KERNCONF=RPI-B-ZFS
 	FREEBSD_SRC=/home/hugh/knox/src
 
-Change the user as needed. I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
+I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
 
 The *KERNCONF* is the specification of how to build the kernel for the Raspberry Pi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
 
@@ -916,19 +866,18 @@ With all this done, we can kick off the build. It needs to run as root as it wil
 
 	root@local# pkg install u-boot-rpi
 	root@local# cd /home/hugh/knox/crochet
-	root@local# ./crochet.sh -c config.sh
+	root@local# nice -n 20 ./crochet.sh -c config.sh
 
-This will take some time.
+This will take some time. *nice* puts the task at a lower priority so as not to interfere with the rest of the system.
 
 Once it's finished, you'll have a 4GB image that's ready to be put on the SD card. But not so fast, we can do most of our post-installation configuration changes on the image itself, so that it boots up fully ready. To do this, we first mount the image as a memory device.
 
-	root@local# cd /home/hugh/knox
-	root@local# mkdir img
-	root@local# mdconfig -f crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img # note the name this returns, it will probably be md0.
-	root@local# mount /dev/md0s2a img
+	root@local# mdconfig work/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img # note the name this returns, it will probably be md0.
+	root@local# mount /dev/md0s2a /mnt
 
-Create the *img/boot/loader.conf* file:
+Create the */mnt/boot/loader.conf* file:
 
+	autoboot_delay=3
 	zfs_load="YES"
 	vm.kmem_size="180M"
 	vm.kmem_size_max="180M"
@@ -936,19 +885,19 @@ Create the *img/boot/loader.conf* file:
 
 This causes the ZFS module to load with the kernel, sets the kernel memory size at a hard 180MB, which should be large enough for ZFS's needs, and restricts the size of the [ARC](https://en.wikipedia.org/wiki/Adaptive_replacement_cache), leaving more of that 180MB for the meat of ZFS.
 
-Now edit *img/etc/fstab*.
+Now edit */mnt/etc/fstab*.
 
-	/dev/mmcsd0s1   /boot/msdos     msdosfs rw,noatime      0 0
-	/dev/mmcsd0s2a  /               ufs rw,noatime          1 1
+	/dev/mmcsd0s1   /boot/msdos     msdosfs ro      0       0
+	/dev/mmcsd0s2a  /       ufs     ro      1       1
 	/dev/mmcsd0s3.eli       none    swap    sw      0       0
 	tmpfs   /tmp    tmpfs   rw,mode=1777    0       0
-	tmpfs   /var/tmp        tmpfs   rw      0       0
-	tmpfs   /var/run        tmpfs   rw      0       0
-	tmpfs   /var/log        tmpfs   rw      0       0
+	tmpfs   /var    tmpfs   rw      0       0
 
-The main changes here, are that we're directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. We're also going to use a memory backed file system for a few directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks are easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
+First thing to note here, is that we're using read-only mounts. The RPi will not make any writes to the file-system unless we explicity mount it in read-write mode. The benefit of this, is that the system can always be reset to a stable state by switching it off and on again, and also that if it were to lose power during normal operation, it wouldn't find itself in an inconsistent state on reboot.
 
-Here's *img/etc/rc.conf*:
+We're also directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. Lastly, we're going to use a memory backed file system for the system's working directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks are easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
+
+Now here's */mnt/etc/rc.conf*:
 
 	hostname="knox"
 	keymap="uk"
@@ -972,48 +921,60 @@ Here's *img/etc/rc.conf*:
 
 Transatlantic sorts may wish to change the keymap to 'us'. Details of these choices are presented further up in this document, the only difference being that I also disable cron here.
 
-We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *img/etc/ttys* with an empty file:
+We'll only ever access this system remotely, so it makes no sense for it to have terminal emulators hanging around in the background, this will also make local attacks more difficult. Replace *mnt/etc/ttys* with an empty file:
 
-	root@local# echo > /home/hugh/knox/img/etc/ttys
+	root@local# echo > /mnt/etc/ttys
 
-Here's *img/etc/ssh/sshd_config*, this is detailed earlier in the document.
+Here's */mnt/etc/ssh/sshd_config*, this is detailed earlier in the document.
 
 	HostKey /etc/ssh/ssh_host_ed25519_key
 	TrustedUserCAKeys /etc/ssh/knox-ca
-	AllowUsers hugh
+	AllowUsers root
 	PasswordAuthentication no
-	PermitRootLogin no
+	PermitRootLogin without-password
 	UseDNS no
 	UsePAM no
 	ChallengeResponseAuthentication no
 	KexAlgorithms curve25519-sha256@libssh.org
 	Ciphers chacha20-poly1305@openssh.com
 
-Remember to change the user. Now some SSH tasks. Install the fingerprint of the signing key you made way back up in the section about *sshd_config*, and generate the host key for the device while we're at it.
+Now some SSH tasks. Install the fingerprint of your signing key, and generate the host key for the device while we're at it.
 
-	root@local# ssh-keygen -y -f /home/hugh/your-ca-key > /home/hugh/knox/img/etc/ssh/knox-ca
-	root@local# ssh-keygen -t ed25519 -f /home/hugh/knox/img/etc/ssh/ssh_host_ed25519_key # pres <enter> when prompted for a passphrase
-
+	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-ca
+	root@local# cp /usr/home/hugh/.ssh/knox-ca.pub /mnt/etc/ssh/knox-ca
+	root@local# ssh-keygen -t ed25519 -f /mnt/etc/ssh/ssh_host_ed25519_key # press <enter> when prompted for a passphrase
 
 Note the key fingerprint generated from the above. Lastly, we should also add some entropy.
 
-	root@local# dd if=/dev/random of=/home/hugh/knox/img/entropy bs=4k count=1
-	root@local# chmod 600 /home/hugh/knox/img/entropy
+	root@local# dd if=/dev/random of=/mnt/entropy bs=4k count=1
 
-All done. Let's unmount and write the image. Insert the SD card into your system, and take a look at '*dmesg | tail*' to see what device name it gets. Mine is *mmcsd0*.
+Last thing is to put the *zfs-receive* script into the *root* user's home folder. Edit */mnt/root/zfs-receive.sh*:
 
-	root@local# umount /home/hugh/knox/img
+	#!/bin/sh
+
+	geli attach -dpk /tmp/k /dev/da0
+	zpool import wd
+	zfs receive -Fu wd
+	zpool export wd
+
+Then set the permissions:
+
+	root@local# chmod 744 /mnt/root/zfs-receive.sh
+
+All done. Let's unmount and write the image. Insert the SD card into the RPi, and take a look at '*dmesg | tail*' to see what device name it gets. Mine is *mmcsd0*.
+
+	root@local# umount /mnt
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
-	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img of=/dev/mmcsd0 bs=1m
+	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
-You can check the progress of the *dd* operation by typing *ctrl-t* . Put the SD card in your RPi, and boot it up. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network.
+You can check the progress of the *dd* operation by typing *ctrl-t*. When it's done, put the SD card in your RPi and boot it up. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network. (You may need to install *nmap*).
 
 	hugh@local$ nmap -Pn -p ssh --open <your local network>/<your CIDR mask>  # probably 192.168.1.0/24
 
-Once you've found the new addition, connect in using a key signed by the *knox-ca* key. Then, go back to the start of this guide, filling in all the blanks. That wasn't so bad was it?
+Once you've found the new addition, connect in using a key signed by the *knox-ca* key, as detailed in the main section. Then, go back to the start of this guide, filling in all the blanks.
 
-One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the famous [Ports](https://www.freebsd.org/ports/) tree makes it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything that task needs. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that ports tree from *portsnap* is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
+One last thing, because ARMv6 isn't a Tier 1 supported architecture, there aren't any binary packages provided by the FreeBSD Foundation. Thankfully, FreeBSD is all about the source code, and the famous [Ports](https://www.freebsd.org/ports/) tree makes it easy to compile your own packages for whatever architecture you have a compiler for. Unfortunately...the RPi is very slow at compiling packages. Being a patient man, I've compiled a few myself that I find useful to use on this system, but I stress that none of these are necessary for the ZFS backup features - the base system has everything needed for that. RPi packages are available [here](https://github.com/hughobrien/zfs-remote-mirror/tree/master/pkg). If you do decide to build some ports, bear in mind that ports tree from *portsnap* is approximately 900MB in size, before you begin to compile anything. [Poudriere](https://www.freebsd.org/doc/handbook/ports-poudriere.html) is an alternative that makes cross-compilation (building on your local machine for the RPi) easier, but I found it as easy to just wait for the RPi.
 
 To use these packages, grab the *pkg-static* binary from the folder and use that to install *pkg* properly.
 
@@ -1021,40 +982,35 @@ To use these packages, grab the *pkg-static* binary from the folder and use that
 
 I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
 
-Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to tolerate the user being called 'hugh' (you can change that after logging in), and you'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know!
+Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know! Though this is sized for 4GB cards, it will also work with larger ones, though the extra space won't accessible.
 
-Use *xz* to decompress it and then mount it with *mdconfig* as above. Verify that the file matches the following hash:
+It's easiest to flash the image directly, then connect in and make the necessary changes, you should also verify the checksum matches the one shown below.
 
 	hugh@local$ prefix="https://github.com/hughobrien/zfs-remote-mirror/raw/master"
-	hugh@local$ fetch $prefix/FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
-	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
-	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz) = 18761793070c96480fb40ec2b8f99ec5a0fa80e2056c8f9f2d279a7ed446dbdb
-	hugh@local$ xz -k FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz
-	# now use mdconfig and mount
-
-You can also flash the image directly and make your changes live, grab a signed login key to do this:
-
-	root@local# xzcat FreeBSD-armv6-10.2-RPI-B-ZFS-295483M.img.xz | dd of=/dev/mmcsd0 bs=1m
-	# transfer to RPi
+	hugh@local$ fetch $prefix/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz
+	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz
+	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz) = 338490fb8985d0778a5de743b1e8f4b5cac9b30ba3b398e6ffa49937c8a56137
+	root@local# xzcat FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz | dd of=/dev/mmcsd0 bs=1m
+	# transfer to RPi, give it about 30 seconds to boot.
 	hugh@local$ fetch $prefix/keys/knox-login 
 	hugh@local$ fetch $prefix/keys/knox-login-cert.pub
-	hugh@local$ ssh -i knox-login hugh@192.168.1.13 # replace with your assigned IP
+	hugh@local$ chmod 600 knox-login
+	hugh@local$ ssh -i knox-login root@192.168.1.13 # replace with your assigned IP
 
-	ED25519 key fingerprint will be fd:7f:81:8f:7a:41:58:e1:76:c4:9f:de:80:94:87:61
+	ED25519 key fingerprint will be 8f:a5:94:2e:b5:a2:97:93:ed:71:2c:67:de:a1:32:9c
 
-Now go back to the start and fill in any missing steps.
+Now that you're in, you should replace the ssh host key and the ssh certificate authority key with your own (or else I'll be able to login). These were explained above. You'll have to mount the root file-system as read-write beforehand though:
 
-One last thing, once I have the image fully configured, I like to edit */etc/fstab* and make system read-only, and create a tmpfs for all of */var*. This means that if the system loses power when the external drive isn't in action, there should never be any issues with it coming back up clean. Reboot after this change.
+	root@knox# mount -o rw /
+	root@knox# cd /etc/ssh/
+	root@knox# rm ssh_host_ed25519_key ssh_host_ed25519_key.pub
+	root@knox# ssh-keygen -t ed25519 -f ssh_host_ed25519_key
+	#replace /etc/ssh/knox-ca with the public key of your chosen CA key
+	root@knox reboot
 
-	/dev/mmcsd0s1   /boot/msdos     msdosfs ro,noatime      0 0
-	/dev/mmcsd0s2a  /               ufs ro,noatime          1 1
-	/dev/mmcsd0s3.eli       none    swap    sw      0       0
-	tmpfs   /tmp    tmpfs   rw,mode=1777    0       0
-	tmpfs   /var    tmpfs   rw      0       0
+Now create and sign a login key as described in the main guide. When the system is back up and you attempt to reconnect, you'll get an SSH error about 'remote host identification changed', as indeed it has. Edit your *~/.ssh/known_hosts* file to remove the offending entry (probably the last line in the file).
 
-If you find yourself needing to make changes to the system, you can remount it with:
-
-	root@knox# mount -o rw / # use -o ro to put it back
+With that done, go back to the start of this guide and fill in any missing steps.
 
 Appendix - ECC Memory
 ====================
