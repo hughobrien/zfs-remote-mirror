@@ -532,7 +532,7 @@ Back to user level, and drum roll please...
 	hugh@local$ ssh knox-fifo < ~/.ssh/knox-geli-key &
 	hugh@local$ zfs send -Rev "wd@$snapname" | ssh knox-send
 
-Be prepared to wait...
+Be prepared to wait...I get about 2.5MB/s.
 
 Your data is now safe, secure, and (soon to be) far away. Accessible to only someone with your SSH key and its password (or physical access) and readable only by someone with your geli key.
 
