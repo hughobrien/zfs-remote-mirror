@@ -568,6 +568,7 @@ Also be aware, that there isn't currently support for resuming failed transfers,
 
 Here's the whole script, save it as *~/backup.sh* on your local machine.
 
+	hugh@local$ cd
 	hugh@local$ fetch https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/backup.sh
 	hugh@local$ chmod 744 backup.sh
 	hugh@local$ cat backup.sh
