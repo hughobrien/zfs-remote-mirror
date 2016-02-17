@@ -1,6 +1,6 @@
 ZFS Remote Mirrors for Home Use
 ===============================
-**Update: Now with pre-built ZFS Raspberry Pi image! Jump to the Appendix for more information.**
+**Update: Now with pre-built ZFS Raspberry Pi image! Jump to the Appendix for more information. In summary: Flash the image, change the keys, send your snapshots**
 
 **ECC Update: The requirement for ECC memory with ZFS is a little contentious, more information in the Appendix.**
 
