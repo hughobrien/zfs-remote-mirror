@@ -1,8 +1,8 @@
 ZFS Remote Mirrors for Home Use
 ===============================
-**Update: Now with pre-built ZFS Raspberry Pi image! Jump to the Appendix for more information. In summary: Flash the image, change the keys, send your snapshots**
+**Update: Now with pre-built ZFS Raspberry Pi image! Jump to the Appendix for more information. In summary: Flash the image, change the keys, send your snapshots.**
 
-**ECC Update: The requirement for ECC memory with ZFS is a little contentious, more information in the Appendix.**
+**ECC Memory Note: The requirement for ECC memory with ZFS is a little contentious, it's not needed for this use but see the second Appendix for more information.**
 
 Why pay a nebulous cloud provider to store copies of our boring, but nice to keep data? Old photographs, home videos, college papers, MP3s from Napster; we typically stick them somewhere and hope the storage doesn't rot.
 
@@ -893,7 +893,7 @@ Now edit */mnt/etc/fstab*.
 	tmpfs   /tmp    tmpfs   rw,mode=1777    0       0
 	tmpfs   /var    tmpfs   rw      0       0
 
-First thing to note here, is that we're using read-only mounts. The RPi will not make any writes to the file-system unless we explicity mount it in read-write mode. The benefit of this, is that the system can always be reset to a stable state by switching it off and on again, and also that if it were to lose power during normal operation, it wouldn't find itself in an inconsistent state on reboot.
+First thing to note here, is that we're using read-only mounts. The RPi will not make any writes to the file-system unless we explicitly mount it in read-write mode. The benefit of this, is that the system can always be reset to a stable state by switching it off and on again, and also that if it were to lose power during normal operation, it wouldn't find itself in an inconsistent state on reboot.
 
 We're also directing the system to use the third partition (the one we edited the crochet setup file to create) as a swap device, but the addition of '.eli' causes it to be automatically encrypted with a one-time key at boot. Lastly, we're going to use a memory backed file system for the system's working directories. This means they're cleared on every reboot, and won't end up filling up the disk if they grow too much. Since we've added a swap partition of about 700MB, the contents of these memory disks are easily swapped out (unlike the kernel), so we're not likely to hit memory issues. A good trade off I think.
 
@@ -1032,3 +1032,5 @@ Here's some more debate on the matter:
 * [brianmoses](http://blog.brianmoses.net/2014/03/why-i-chose-non-ecc-ram-for-my-freenas.html)
 * [JRS Systems](http://jrs-s.net/2015/02/03/will-zfs-and-non-ecc-ram-kill-your-data/)
 * [Louwrentius] (http://louwrentius.com/please-use-zfs-with-ecc-memory.html)
+
+In short, since this is a remote backup drive, we will always have two copies of our data. Should the backup system for any reason, memory or otherwise, we can easily get another one and recreate the backups. It is always better to have two independent copies of your data on systems without ECC memory than one copy on a system with it.
