@@ -568,6 +568,10 @@ Also be aware, that there isn't currently support for resuming failed transfers,
 
 Here's the whole script, save it as *~/backup.sh* on your local machine.
 
+	hugh@local$ fetch https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/backup.sh
+	hugh@local$ chmod 744 backup.sh
+	hugh@local$ cat backup.sh
+
 	#!/bin/sh
 
 	last_sent_file=~/.zfs-last-sent
@@ -609,10 +613,6 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 		snapback) snapshot; backup ;;
 		*) echo "Commands are: snapshot, backup, preview, snapback"
 	esac
-
-You'll have to make it executable too:
-
-	hugh@local$ chmod 744 ~/backup.sh
 
 If you're still in the same shell that you ran the initial backup from, we can set the *remote state* file now.
 
@@ -986,7 +986,7 @@ Congratulations on making it to the end, as a reward, here's a pre-made RPi imag
 
 It's easiest to flash the image directly, then connect in and make the necessary changes, you should also verify the checksum matches the one shown below.
 
-	hugh@local$ prefix="https://github.com/hughobrien/zfs-remote-mirror/raw/master"
+	hugh@local$ prefix="https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master"
 	hugh@local$ fetch $prefix/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz
 	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz
 	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz) = 338490fb8985d0778a5de743b1e8f4b5cac9b30ba3b398e6ffa49937c8a56137
