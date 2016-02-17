@@ -1033,4 +1033,4 @@ Here's some more debate on the matter:
 * [JRS Systems](http://jrs-s.net/2015/02/03/will-zfs-and-non-ecc-ram-kill-your-data/)
 * [Louwrentius] (http://louwrentius.com/please-use-zfs-with-ecc-memory.html)
 
-In short, since this is a remote backup drive, we will always have two copies of our data. Should the backup system for any reason, memory or otherwise, we can easily get another one and recreate the backups. It is always better to have two independent copies of your data on systems without ECC memory than one copy on a system with it.
+In short, since this is a remote backup drive, we will always have two copies of our data. Should the backup system fail for any reason, memory or otherwise, we can easily get another one and recreate the backup. It is always better to have two independent copies of your data on systems without ECC memory than one copy on a system with it. And since non-ECC systems are easier to come by, I think it's the better move.
