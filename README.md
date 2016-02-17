@@ -1005,7 +1005,7 @@ Now that you're in, you should replace the ssh host key and the ssh certificate 
 	root@knox# mount -o rw /
 	root@knox# cd /etc/ssh/
 	root@knox# rm ssh_host_ed25519_key ssh_host_ed25519_key.pub
-	root@knox# ssh-keygen -t ed25519 -f ssh_host_ed25519_key
+	root@knox# ssh-keygen -t ed25519 -f ssh_host_ed25519_key # don't use any password
 	#replace /etc/ssh/knox-ca with the public key of your chosen CA key
 	root@knox reboot
 
