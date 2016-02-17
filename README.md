@@ -1013,6 +1013,14 @@ Now create and sign a login key as described in the main guide. When the system 
 
 With that done, go back to the start of this guide and fill in any missing steps.
 
+As a final note, it's common to overclock the Raspberry Pi using the */boot/msdos/config.txt* file, simply add the following lines for a moderate speed increase:
+
+	arm_freq=850
+	sdram_freq=450
+	gpu_freq=300
+
+However, any overclocking increases the potential for errors or system faults. Increasing the chip frequencies also increases the power draw which puts extra load on the power supply, which in my case is also powering the USB HDD. The benefit of the overclocking is about a 10% CPU boost, the drawback is considerable. I suggest you play it safe and ignore the temptation.
+
 Appendix - ECC Memory
 ====================
 It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module. If ZFS then attempts to *correct* it, based on some online redundancy, that correction too may pass through the bad memory thus actually corrupting it.
