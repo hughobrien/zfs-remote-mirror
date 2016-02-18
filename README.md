@@ -1007,6 +1007,7 @@ Now that you're in, you should replace the ssh host key and the ssh certificate 
 	root@knox# rm ssh_host_ed25519_key ssh_host_ed25519_key.pub
 	root@knox# ssh-keygen -t ed25519 -f ssh_host_ed25519_key # don't use any password
 	#replace /etc/ssh/knox-ca with the public key of your chosen CA key
+	root@knox# tzsetup # might as well set the timezone now
 	root@knox reboot
 
 Now create and sign a login key as described in the main guide. When the system is back up and you attempt to reconnect, you'll get an SSH error about 'remote host identification changed', as indeed it has. Edit your *~/.ssh/known_hosts* file to remove the offending entry (probably the last line in the file).
