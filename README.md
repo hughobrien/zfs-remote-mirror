@@ -962,7 +962,7 @@ Then set the permissions:
 
 	root@local# chmod 744 /mnt/root/zfs-receive.sh
 
-All done. Let's unmount and write the image. Insert the SD card into the RPi, and take a look at '*dmesg | tail*' to see what device name it gets. Mine is *mmcsd0*.
+All done. Let's unmount and write the image. Insert the SD card into the building system and take a look at '*dmesg | tail*' to see what device name it gets. Mine is *mmcsd0*.
 
 	root@local# umount /mnt
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
