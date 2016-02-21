@@ -939,7 +939,7 @@ Here's */mnt/etc/ssh/sshd_config*, this is detailed earlier in the document.
 	KexAlgorithms curve25519-sha256@libssh.org
 	Ciphers chacha20-poly1305@openssh.com
 
-Now some SSH tasks. Install the fingerprint of your signing key, and generate the host key for the device while we're at it.
+Now some SSH tasks. Install the fingerprint of the signing key, and generate the host key for the device while we're at it.
 
 	hugh@local$ ssh-keygen -t ed25519 -f ~/.ssh/knox-ca
 	root@local# cp /usr/home/hugh/.ssh/knox-ca.pub /mnt/etc/ssh/knox-ca
