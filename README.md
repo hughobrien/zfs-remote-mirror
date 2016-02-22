@@ -1009,6 +1009,7 @@ Now that you're in, you should replace the ssh host key and the ssh certificate 
 	root@knox# tzsetup # might as well set the timezone now
 	# maybe edit /etc/rc.conf as you desire, e.g. the keymap
 	root@knox# mkdir /wd # or whatever you're going to call your pool
+	root@knox# echo "nameserver 8.8.4.4" > /etc/resolv.conf # Select your nameserver
 	root@knox reboot
 
 Now create and sign a login key as described in the main guide. When the system is back up and you attempt to reconnect, you'll get an SSH error about 'remote host identification changed', as indeed it has. Edit your *~/.ssh/known_hosts* file to remove the offending entry (probably the last line in the file).
