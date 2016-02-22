@@ -600,7 +600,6 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 
 	preview() {
 		zfs diff "$latest_remote" "$latest_local" | less
-		echo "Size in MB:" $(echo $snapshot_size / 1024^2 | bc)
 	}
 
 	backup() {
