@@ -566,53 +566,11 @@ Note that the way we send the snapshots will remove any data on the remote pool 
 
 Also be aware, that there isn't currently support for resuming failed transfers, so they'll have to be restarted. With small, regular snapshots this shouldn't pose much of an issue, and it is an [upcoming feature](http://www.slideshare.net/MatthewAhrens/openzfs-send-and-receive).
 
-Here's the whole script, save it as *~/backup.sh* on your local machine.
+[Here's the whole script](https://github.com/hughobrien/zfs-remote-mirror/blob/master/backup.sh), save it as *~/backup.sh* on your local machine.
 
 	hugh@local$ cd
 	hugh@local$ fetch https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/backup.sh
 	hugh@local$ chmod 744 backup.sh
-	hugh@local$ cat backup.sh
-
-	#!/bin/sh
-
-	last_sent_file=~/.knox-last-sent
-	[ ! -f "$last_sent_file" ] && touch "$last_sent_file"
-
-	latest_remote="$(cat "$last_sent_file")"
-	[ -z $latest_remote ] && echo "remote state unknown; set it in $last_sent_file"
-
-	latest_local="$(zfs list -H -d1 -t snapshot\
-		| grep -e '-[0-9][0-9]T[0-9][0-9]:' \
-		| cut -f1 \
-		| sort \
-		| tail -n 1)"
-
-	snapshot() {
-		zfs snapshot -r "wd@$(date -u '+%FT%TZ')"
-	}
-
-	send_incremental_snapshot() {
-		ssh knox-fifo < ~/.ssh/knox-geli-key &
-		sleep 3
-		zfs send -RevI "$latest_remote" "$latest_local" \
-		| ssh knox-send
-	}
-
-	preview() {
-		zfs diff "$latest_remote" "$latest_local" | less
-	}
-
-	backup() {
-		send_incremental_snapshot && echo "$latest_remote" > "$last_sent_file"
-	}
-
-	case "$1" in
-		backup) backup ;;
-		preview) preview ;;
-		snapshot) snapshot ;;
-		snapback) snapshot; backup ;;
-		*) echo "Commands are: snapshot, backup, preview, snapback"
-	esac
 
 If you're still in the same shell that you ran the initial backup from, we can set the *remote state* file now.
 
