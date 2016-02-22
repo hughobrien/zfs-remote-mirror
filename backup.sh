@@ -25,7 +25,6 @@ send_incremental_snapshot() {
 
 preview() {
 	zfs diff "$latest_remote" "$latest_local" | less
-	echo "Size in MB:" $(echo $snapshot_size / 1024^2 | bc)
 }
 
 backup() {
