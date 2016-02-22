@@ -575,7 +575,7 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 
 	#!/bin/sh
 
-	last_sent_file=~/.zfs-last-sent
+	last_sent_file=~/.knox-last-sent
 	[ ! -f "$last_sent_file" ] && touch "$last_sent_file"
 
 	latest_remote="$(cat "$last_sent_file")"
@@ -617,7 +617,7 @@ Here's the whole script, save it as *~/backup.sh* on your local machine.
 
 If you're still in the same shell that you ran the initial backup from, we can set the *remote state* file now.
 
-	hugh@local$ echo "wd@$snapname" > .zfs-last-sent
+	hugh@local$ echo "wd@$snapname" > .knox-last-sent
 
 Physically Placing Your Remote System
 =====================================
