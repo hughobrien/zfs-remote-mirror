@@ -75,10 +75,12 @@ backup() {
 }
 
 case "$1" in
-	backup) backup ;;
-	preview) preview ;;
-	snapshot) snapshot ;;
-	size) print_size ;;
-	snapback) snapshot; print_size; backup ;;
-	*) echo "Commands are: snapshot, preview, size, backup, snapback"
+	backup)	backup ;;
+	preview)	preview ;;
+	snapshot)	snapshot ;;
+	snapback)	snapshot; print_size; backup ;;
+	*)	echo "Latest Local:   "$latest_local""
+		echo "Latest Remote:  "$latest_remote""
+		print_size; echo
+		echo "Commands are: snapshot, preview, backup, snapback"
 esac
