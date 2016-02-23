@@ -1,15 +1,17 @@
 #!/bin/sh
 # Hugh O'Brien 2016 - obrien.hugh@gmail.com
+set -x
 
-[ ! -x /usr/local/bin/pv ] && echo "pv not found" &&  exit
+# pipe-viewer isn't technically needed, but it is nice for progress info
+[ -z $(which pv) ] && echo "pv not found" && exit
 
 last_sent_file=~/.knox-last-sent
 [ ! -f "$last_sent_file" ] && touch "$last_sent_file"
 
 latest_remote="$(cat "$last_sent_file")"
-[ -z $latest_remote ] && echo "remote state unknown. Set it in $last_sent_file"
+[ -z "$latest_remote" ] && echo "remote state unknown. Set it in "$last_sent_file""
 
-# This is split out as we may need to recalculate it if we make a new snapshot
+# This is split out as we need to recalculate it if we make a new snapshot
 update_latest_local() {
 	latest_local="$(zfs list -H -d1 -t snapshot \
 		| grep -e '-[0-9][0-9]T[0-9][0-9]:' \
@@ -19,6 +21,7 @@ update_latest_local() {
 }
 update_latest_local
 
+# pv will only take integer size arguments, so convert them here
 calculate_size() {
 	size=$(zfs send -RevnI "$latest_remote" "$latest_local"  2>&1 \
 		| tail -n 1 \
@@ -78,5 +81,5 @@ case "$1" in
 	snapshot) snapshot ;;
 	size) print_size ;;
 	snapback) snapshot; print_size; backup ;;
-	*) echo "Commands are: snapshot, backup, preview, snapback"
+	*) echo "Commands are: snapshot, preview, size, backup, snapback"
 esac
