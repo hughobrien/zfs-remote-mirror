@@ -1,6 +1,5 @@
 #!/bin/sh
 # Hugh O'Brien 2016 - obrien.hugh@gmail.com
-set -x
 
 # pipe-viewer isn't technically needed, but it is nice for progress info
 [ -z $(which pv) ] && echo "pv not found" && exit
