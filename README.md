@@ -902,8 +902,9 @@ Now some SSH tasks. Install the fingerprint of the signing key, and generate the
 	root@local# cp /usr/home/hugh/.ssh/knox-ca.pub /mnt/etc/ssh/knox-ca
 	root@local# ssh-keygen -t ed25519 -f /mnt/etc/ssh/ssh_host_ed25519_key # press <enter> when prompted for a passphrase
 
-Note the key fingerprint generated from the above. Lastly, we should also add some entropy.
+Note the key fingerprint generated from the above. Lastly, we should set a nameserver and add some entropy.
 
+	root@local# echo "nameserver 8.8.4.4" > /etc/resolv.conf
 	root@local# dd if=/dev/random of=/mnt/entropy bs=4k count=1
 
 Last thing is to put the *zfs-receive* script into the *root* user's home folder. Edit */mnt/root/zfs-receive.sh*:
