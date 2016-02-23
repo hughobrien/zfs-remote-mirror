@@ -77,8 +77,8 @@ backup() {
 case "$1" in
 	backup)	backup ;;
 	preview)	preview ;;
-	snapshot)	snapshot ;;
-	snapback)	snapshot; print_size; backup ;;
+	snapshot)	snapshot; print_size ;;
+	snapback)	snapshot; backup ;;
 	*)	echo "Latest Local:   "$latest_local""
 		echo "Latest Remote:  "$latest_remote""
 		print_size; echo
