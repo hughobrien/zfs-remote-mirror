@@ -983,6 +983,8 @@ As a final note, it's common to overclock the Raspberry Pi using the */boot/msdo
 
 However, any overclocking increases the potential for errors or system faults. Increasing the chip frequencies also increases the power draw which puts extra load on the power supply, which in my case is also powering the USB HDD. The benefit of the overclocking is about a 25% CPU boost, the drawback is considerable. I suggest you play it safe and ignore the temptation.
 
+In the *config.txt* file there's also a line to adjust the memory split between the on-board GPU and the CPU. *u-boot* will default to 32MB, which I suggest you leave it alone. Lowering to 16M in my experience caused boot issues.
+
 Appendix - ECC Memory
 ====================
 It's been pointed out that if ZFS detects a bad checksum while reading, it will always mark the disk as the problem, even if the real fault is a bad memory module. If ZFS then attempts to *correct* it, based on some online redundancy, that correction too may pass through the bad memory thus actually corrupting it.
