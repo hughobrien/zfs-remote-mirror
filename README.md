@@ -939,7 +939,7 @@ To use these packages, grab the *pkg-static* binary from the folder and use that
 
 	root@knox# ./pkg-static add pkg-1.6.3.txz
 
-I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators.
+I should also note, that much to my surprise, my simple 1A USB power supply is able to both power the RPi, and the 2TB USB powered drive I attached to it, no powered hub needed - though this may be putting some strain on the RPi's linear regulators. To my further surprise, the choice of USB cable that connects the power supply to the RPi is also significant, lower quality ones seem less able to carry higher amounts of current.
 
 Congratulations on making it to the end, as a reward, here's a pre-made RPi image file containing almost all of the above modifications. You'll have to install your own CA key, but otherwise it should speed things up quite a bit. Why didn't I mention this earlier? Think how much more you now know! Though this is sized for 4GB cards, it will also work with larger ones, but the extra space won't accessible.
 
