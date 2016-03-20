@@ -480,11 +480,11 @@ Drop the following script into *root*'s home directory, call it *zfs-receive.sh*
 
 	#!/bin/sh
 
-	dd if=/dev/da0 of=/dev/null bs=1m count=3
+	dd if=/dev/da0 of=/dev/null bs=1m count=3 2>/dev/null
 	geli attach -dpk /tmp/k /dev/da0
-	zpool import wd
+	zpool import -Nf wd
 	zfs receive -Fu wd
-	zpool export wd
+	zpool export -f wd
 
 What's this you say? I promised that we wouldn't store the key on the backup server? [Behold! The Named Pipe](https://en.wikipedia.org/wiki/Named_pipe)
 
