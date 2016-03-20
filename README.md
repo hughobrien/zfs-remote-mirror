@@ -482,6 +482,7 @@ Drop the following script into *root*'s home directory, call it *zfs-receive.sh*
 
 	dd if=/dev/da0 of=/dev/null bs=1m count=3 2>/dev/null
 	geli attach -dpk /tmp/k /dev/da0
+	zpool export -f wd 2>/dev/null
 	zpool import -Nf wd
 	zfs receive -Fu wd
 	zpool export -f wd
