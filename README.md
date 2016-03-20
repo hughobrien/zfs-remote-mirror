@@ -476,10 +476,11 @@ ZFS datasets allow you to specify different attributes on different sets of data
 
 Plumbing
 ========
-Drop the following script into *root*'s home directory, call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script remotely was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that.
+Drop the following script into *root*'s home directory, call it *zfs-receive.sh*. I would have preferred to invoke these commands remotely but after a lot of experimenting, triggering the script was the only way I found that properly detached the encrypted drive in the event of connection failure. So rest assured, you're protected against that. The *dd* at the start is to spin up the drive.
 
 	#!/bin/sh
 
+	dd if=/dev/da0 of=/dev/null bs=1m count=3
 	geli attach -dpk /tmp/k /dev/da0
 	zpool import wd
 	zfs receive -Fu wd
