@@ -424,6 +424,8 @@ The following command creates an AES-XTS block device with a 128 bit key. Other 
 
 The other *geli* option of note is the sector size. By forcing *geli* to use 4KiB sectors, and only writing to the *geli* overlay, we get the best performance from our drive. Though, given the low power nature of this system, we're unlikely to ever see the benefit due to slower links in the rest of the chain. Since *geli* encrypts per-sector, specifying a larger size also reduces it's workload versus the default 512 byte sectors.
 
+Note: There is a bug in older ARM versions of *geli* that may prevent you from attaching a drive you've just initialised. [See here for a workaround](https://github.com/hughobrien/zfs-remote-mirror/issues/6)
+
 Let's see how this encryption has affected our drive's speed:
 
 	root@knox# dd if=/dev/zero of=/dev/da0.eli bs=1m count=100
