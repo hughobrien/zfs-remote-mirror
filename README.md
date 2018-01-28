@@ -26,18 +26,19 @@ You can have:
 
 You will need:
 --------------
-* A FreeBSD 10.2 (or later) [supported](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html) system, such as:
- * A [Raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi), [BeagleBoard](https://en.wikipedia.org/wiki/BeagleBoard) or another [FreeBSD ARM target](https://www.freebsd.org/platforms/arm.html), use a 4GB+ SD Card.
- * An old laptop, with around 512MB of memory, preferably something quiet.
+* A FreeBSD 11.1 (or later) [supported](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html) system, such as:
+  * A [Raspberry Pi (B or 2, maybe 3?)](https://en.wikipedia.org/wiki/Raspberry_Pi), [BeagleBoard](https://en.wikipedia.org/wiki/BeagleBoard) or another [FreeBSD ARM target](https://www.freebsd.org/platforms/arm.html), use a 4GB+ SD Card.
+  * An old laptop, with around 512MB of memory, preferably something quiet.
 * A USB Hard Drive.
- * If using an SBC, a drive that comes with its own power supply is useful.
- * If using an old laptop, a drive powered directly by USB is probably better.
+  * If using an SBC, a drive that comes with its own power supply is useful.
+  * If using an old laptop, a drive powered directly by USB is probably better.
 * An Ethernet Internet connection in a location that is not your home.
- * Do not even consider Wi-Fi. Frustration abounds.
+  * Do not even consider Wi-Fi. Frustration abounds.
 * The ability to reach the system from the outside world. Potentially via:
- * [Port forwarding](http://portforward.com/) (most likely).
- * IPv6.
- * Overlay routing ([Tor](https://en.wikipedia.org/wiki/Tor_(anonymity_network)), [I2P](https://en.wikipedia.org/wiki/I2P), [cjdns](https://en.wikipedia.org/wiki/Cjdns)).
+  * [Port forwarding](http://portforward.com/) (most likely).
+  * IPv6.
+  * [ZeroTier](https://www.zerotier.com) (I really like ZeroTier)
+  * Overlay routing ([Tor](https://en.wikipedia.org/wiki/Tor_(anonymity_network)), [I2P](https://en.wikipedia.org/wiki/I2P), [cjdns](https://en.wikipedia.org/wiki/Cjdns)).
 
 I'm specifying a laptop/SBC as it's a lot more palatable a device to ask someone to let you keep in their home. You can of course use a desktop if you have sufficient charm.
 
@@ -108,7 +109,7 @@ Other secrets like the passwords for the root and the user account are less impo
 
 That reads any strings that emerge from the noise of the PRNG, discards any not six characters long, and any containing whitespace or punctuation. After two such strings have been emitted it puts them together and *echo* ensures there's a newline at the end. We could just look for a single twelve character string matching our needs but that takes a while, those monkeys can only type so fast.
 
-For future reference, all the commands I show you are written to run on a FreeBSD 10 system. GNU utilities often take different arguments so you might be able to translate with careful reference to the *man* pages. Also, I'll write the names of system components in *italics*. E.g. ZFS is the product, *zfs* is the command to control it.
+For future reference, all the commands I show you are written to run on a FreeBSD 11 system. GNU utilities often take different arguments so you might be able to translate with careful reference to the *man* pages. Also, I'll write the names of system components in *italics*. E.g. ZFS is the product, *zfs* is the command to control it.
 
 Server Setup
 ============
@@ -176,6 +177,7 @@ Before we connect, we should first setup our **local** SSH configuration.
 Edit your **local** *~/.ssh/config* and insert the following:
 
 	HashKnownHosts yes
+	IdentitiesOnly yes
 
 	Host knox
 		User root
@@ -205,17 +207,18 @@ We'll be editing several config files so I hope you know your *vi* key-bindings.
 	ntpd_enable="YES" # keep the system regular
 	ntpd_sync_on_start="YES"
 
+	# These are architecture dependent, check if yours supports them
 	powerd_enable="YES" # keep power usage down
 	performance_cx_lowest="C2"
 	economy_cx_lowest="C2"
 
-	sendmail_enable="NO" # no need for sendmail
+	sendmail_enable="NONE" # no need for sendmail
 	sendmail_submit_enable="NO"
 	sendmail_outbound_enable="NO"
 	sendmail_msp_queue_enable="NO"
 
 	dumpdev="NO" # defaults to no on RELEASE but you may be on CURRENT
-	#syslogd_enable="NO" # I think syslog should stay on, but you may feel otherwise
+	#syslogd_enable="NO" # If building a read-only system we can't log
 
 Let's have *ntpd* synchronise the clock before we proceed:
 
@@ -313,6 +316,7 @@ Sign the key. The *-I* flag is just a comment.
 Now we tell *ssh* to use this key when connecting to *knox*. We can add some fanciness while we're at it. Edit your *~/.ssh/config*:
 
 	HashKnownHosts yes
+	IdentitiesOnly yes
 	ControlMaster auto
 	ControlPath /tmp/ssh_mux_%h_%p_%r
 	ControlPersist 30m
@@ -727,30 +731,29 @@ The basic process is:
 * Customise built image.
 * Boot RPi.
 
-I'm working with FreeBSD 10.2, which is the production branch at the time of writing. There are some [pre-made images](https://ftp.heanet.ie/pub/FreeBSD/releases/arm/armv6/ISO-IMAGES/10.2/) provided by the foundation but they're of 10.2-RELEASE, 10.2-STABLE has advanced a little since then. And since we're going to all the bother of building our own images, it makes sense to get the best available code. Also, rather crucially, these images do not support ZFS.
+I'm working with FreeBSD 11.1, which is the production branch at the time of writing. There are some [pre-made images](https://ftp.heanet.ie/pub/FreeBSD/releases/arm/armv6/ISO-IMAGES/11.1/) provided by the foundation but they suffer from the same [KSTACK_PAGES](https://www.freebsd.org/relnotes/10-STABLE/errata/open-issues.html) bug as the i386 release that causes a panic when importing a ZFS pool. Interestingly this config is exposed as a bootloader setting which means we should be able to use the stock kernel/image and just tune it before using ZFS, but in my experience this did not work. Hence we'll build our own kernel.
 
-The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and being repaired as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 10. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 10.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything in it work well together. When they're satisfied they *tag* a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement, and we get to download and play with, for example, FreeBSD-10.0-RELEASE.
+The [FreeBSD Release Engineering](https://www.freebsd.org/doc/en/articles/releng/) process is worth [reading up on](https://www.freebsd.org/doc/en/articles/releng/release-proc.html). In a nutshell, most development occurs in *current*, also called *head*, which changes all the time, breaking and being repaired as new code is added. Every now and then the release team cleave off a section from current and call it a *stable* branch, such as 11. Code from current which is considered to be good stuff gets brought down into the latest stable branch. At some point the team branches off the stable branch to make a *feature* branch, such as 11.0. This branch stops getting the new toys added to the stable branch and the team focus on making everything in it work well together. When they're satisfied they *tag* a certain state of the feature branch as a *release*. Then they go to all the work of building the images and documentation for this release, make a big announcement, and we get to download and play with, for example, FreeBSD-11.0-RELEASE.
 
 Of course, not everything is always rosy with a release, sometime minor bug fixes or security patches come out afterwards, known as *errata*. These make it into the feature branch, but since the release has already been tagged and distributed, it doesn't change. In an ideal world, we'd always run the most recent code from a feature branch. However this would mean each user would have to track the branch themselves and rebuild as necessary. Since most people use the RELEASE images (as recommended), the team also put out binary patches for the main supported architectures to allow people on a RELEASE to change just the necessary files, without compiling anything, bringing them to an equivalent state as if they were running a system compiled from the latest feature branch. This is provided by *freebsd-update*, for [supported platforms](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html).
 
 I mention all of this, to answer the seemingly simple question, of what source branch should we download and compile for our Raspberry Pi? The Pi is an ARMv6 board, and thus isn't provided with binary updates. So if we want errata fixes, we have to get them ourselves. Here is the [current list of branches](https://www.freebsd.org/releng/):
 
 * head - no, too unstable.
-* stable/10 - currently working towards 10.3, so not quite stable.
-* releng/10.2 - the latest (at the time of writing) feature branch with all known errata applied.
-* releng/10.1 - an older 10 feature branch.
-* releng/10.0 - as above.
-* stable/9 - 9 isn't getting much love right now, but it's still supported.
-* releng/9.3 - the last feature branch for 9, will still get errata fixes if necessary.
+* stable/11 - currently still open for changes, so probably less stable than we'd like.
+* releng/11.1 - the latest (at the time of writing) feature branch with all known errata applied.
+* releng/11.0 - an older 11 feature branch.
+* stable/10 - 10 isn't getting much love right now, but it's still supported.
+* releng/10.4- the last feature branch for 10, will still get errata fixes if necessary.
 * ...
-* stable/8 - 8 is no longer supported, but it's still there for all the world to see. Doesn't support the RPi.
+* stable/9 - 9 is no longer supported, but it's still there for all the world to see. Doesn't support the RPi.
 * ...
 * stable/2.2 - FreeBSD is indeed old.
 
-So, since we're building our own image, and compiling all our own code, we want the latest errata fixes from the latest feature branch. That's *releng/10.2*. Let's get the code. Depending on what version of FreeBSD you're currently running, you may already have an earlier version of this code in */usr/src*, but it's cleaner if we grab a fresh copy.
+So, since we're building our own image, and compiling all our own code, we want the latest errata fixes from the latest feature branch. That's *releng/11.1*. Let's get the code. Depending on what version of FreeBSD you're currently running, you may already have an earlier version of this code in */usr/src*, but it's cleaner if we grab a fresh copy.
 
 	hugh@local$ mkdir ~/knox
-	hugh@local$ svnlite co https://svn.freebsd.org/base/releng/10.2 knox/src
+	hugh@local$ svnlite co https://svn.freebsd.org/base/releng/11.1 knox/src
 
 *svn* is the short command name for [Subversion](https://subversion.apache.org/), the source code management system the FreeBSD project uses *'co* is shorthand for the *checkout* subcommand, which has a special meaning within Subversion, but for our purposes just think of it as *download*). However, Subversion is a somewhat large package, so in the name of minimalism, FreeBSD ships *svnlite* instead, which is just fine for our needs. The last argument is the destination folder.
 
@@ -758,19 +761,16 @@ This checkout process will take some time. On my system the process will occasio
 
 If it succeeds, you'll get a message similar to:
 
-	Checked out revision 295681
+	Checked out revision 328513
 
-Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all the hard work of image building for us. The package is maintained on GitHub, which is a little unusual for FreeBSD. If you have *git*, or indeed *git-lite* installed on your system you can get the code with:
+Now we'll get the [*crochet*](https://github.com/freebsd/crochet) build tool, which delightfully does almost all the hard work of image building for us. The package is maintained on GitHub, which is a little unusual for FreeBSD.
 
+	hugh@local$ sudo pkg install git
 	hugh@local$ git clone https://github.com/freebsd/crochet.git
 	hugh@local$ cd crochet
+	hugh@local$ git checkout ae73c6db6010cb042e7614b0c9d7472d29189c2d
 
-If you don't have *git*, GitHub provide zipped archives:
-
-	hugh@local$ fetch https://github.com/freebsd/crochet/archive/master.zip
-	hugh@local$ unzip master.zip
-	hugh@local$ mv crochet-master crochet
-	hugh@local$ cd crochet
+I'm using a paritcular revision of crochet here as there were some changes in FreeBSD HEAD that crochet was updated to accommodate (bootloader locations, etc.) that at the time of writing is incompatibile with the 11.1 release we're working with. This is not uncommon as most FreeBSD developer tools target HEAD.
 
 Crochet operates around a central build script, called *config.sh*. There's a sample file in this directory, which I recommend you take a look at, but for expediency, simply create a new file in this directory called *config.sh* with the following contents:
 
@@ -781,60 +781,34 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 
 I'm using a 4GB card, and leaving about 10% of the space unused so the internal chip can handle bad sectors more easily. The formula for ImageSize is n x 1024 x 0.9, where n is the number of Gigabytes on your card.
 
-The *KERNCONF* is the specification of how to build the kernel for the Raspberry Pi. There's an existing config file in *~/knox/src/sys/arm/conf/RPI-B* that I've modified as by default it doesn't come with, or support ZFS. Here are the modifications:
+The *KERNCONF* is the specification of how to build the kernel for the Raspberry Pi. There's an existing config file in *~/knox/src/sys/arm/conf* that we should modify to pick up the ZFS related changes. 
+
+	hugh@local$ cd ~/knox/src/sys/arm/conf
+	hugh@local$ cp RPI-B RPI-B-ZFS
+	hugh@local$ vi RPI-B-ZFS
+
+
+Here are the modifications to make:
 
 * Change 'ident' line from RPI-B to RPI-B-ZFS.
-* Add 'options KSTACK_PAGES=6' as required for ZFS (it needs extra memory).
-* Add 'opensolaris' and 'zfs' to the MODULES_EXTRA makeoptions, to trigger the build of ZFS.
+* Add 'options KSTACK_PAGES=6' as required for ZFS
 
-I've also removed the following modules, as I don't feel them necessary for this use case and as the RPi is so memory constrained, every byte helps. Some of these options are explained in more detail in the [Developer's Handbook](https://www.freebsd.org/doc/en/books/developers-handbook/kerneldebug-options.html).
-* INET6 - Support for IPv6, you may want to leave this in.
-* SCTP - Stream Control Transmission Protocol, like an optimised TCP, not much use here.
-* UFS_DIRHASH - A speed/memory trade-off in the wrong direction for us.
-* QUOTA - Quota supports not relevant as we're the only human user of this system.
-* NFSCL - Network File System, no need for this at all.
-* NFSLOCKD - As above.
-* NFS_ROOT - As above.
-* KTRACE - Kernel debugging, not needed unless you're developing on this system.
-* KBD_INSTALL_CDEV - This system won't have a keyboard (KBD) so not necessary.
-* BREAK_TO_DEBUGGER - For developers.
-* ALT_BREAK_TO_DEBUGGER - For developers.
-* KDB - Debugging.
-* DDB - Debugging.
-* INVARIANTS - Kernel self-tests, they'll slow us down on an already slow system.
-* INVARIANT_SUPPORT - As above.
-* gpioled - Driver to control [PWM](https://en.wikipedia.org/wiki/Pulse-width_modulation) on the RPi LEDs, not for us.
-* makeoptions DEBUG=-g - Don't build debug symbols, again, we're not developing on this.
+In a previous revision of this guide, I removed a number of modules that probably weren't necessary, (and added ZFS modules which weren't previously built by default) but in the name of simplicity it's probably easier to just leave well-enough-alone. If you're interested in tweaking this, some of the kernel options are explained in more detail in the [Developer's Handbook](https://www.freebsd.org/doc/en/books/developers-handbook/kerneldebug-options.html).
 
-This is, of course, somewhat cumbersome to do manually, so you can grab the config file directly from here:
-
-	hugh@$local$ cd ~/knox/src/sys/arm/conf
-	hugh@$local$ fetch https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master/patches/RPI-B-ZFS
-
-Verify that I'm not sneaking anything in with the following command:
-
-	hugh@local$ diff --side-by-side --suppress-common-lines RPI-B RPI-B-ZFS
-
-There's one tweak to make to crochet before we build. Since we're being so security conscious, it make sense to use encrypted swap, on the off chance that some of our data might get paged out of memory. There's a possibility that the key-material might even be swapped out, so if it's going to be written to the SD card, let's make sure it's not readable afterwards.
-
-To make it easy to enable encrypted swap, we're going to direct crochet to create an extra partition in the image. Edit the file *~/knox/crochet/board/RaspberryPi/setup.sh* and find the function *raspberry_pi_partition_image ( )*.
-Above the line *disk_ufs_create* add *disk_ufs_create 3000m*. [Here's a patch showing the change](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/setup.sh.patch).
-
-If you're using a card size other than 4GB you should tweak that 3000 figure, it's specifying the size of the root partition on the image. The next call to *disk_ufs_create* will use up all remaining space in the image, which for the 4GB case is about 700MB, plenty for swap. Bear in mind that this explicit specification of partition size will conflict with the *Growfs* option that crochet normally uses, though we've excluded it from our config file.
-
-Just one last change, there's a DEFINE statement in the *opensolaris* code that causes some build issues, thankfully it's not needed so we can simply delete it. Edit the file *~/knox/src/sys/cddl/compat/opensolaris/sys/cpuvar.h* and delete the line *#define>cpu_id>-cpuid*, it's on line 50 of the file at the time of writing. [Here's the patch](https://github.com/hughobrien/zfs-remote-mirror/blob/master/patches/cpuvar.h.patch).
+Additionally, previous versions explained how to configure crochet to setup encrypted swap at this point, I've since decided that simply not having swap is a better option. Check the revision history if you feel you need it.
 
 With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the Raspberry Pi version of *uboot* installed, which will be automatically placed into the image.
 
 	root@local# pkg install u-boot-rpi
+	root@local# ln -s /usr/local/share/u-boot/u-boot-rpi/u-boot.bin /usr/local/share/u-boot/u-boot-rpi/u-boot.img # seems this file was renamed and crochet's u-boot-detecting-script still looks in the old place
 	root@local# cd /home/hugh/knox/crochet
 	root@local# nice -n 20 ./crochet.sh -c config.sh
 
-This will take some time. *nice* puts the task at a lower priority so as not to interfere with the rest of the system.
+Grab a coffee, this will take some time. *nice* puts the task at a lower priority so as not to interfere with the rest of the system.
 
 Once it's finished, you'll have a 4GB image that's ready to be put on the SD card. But not so fast, we can do most of our post-installation configuration changes on the image itself, so that it boots up fully ready. To do this, we first mount the image as a memory device.
 
-	root@local# mdconfig work/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img # note the name this returns, it will probably be md0.
+	root@local# mdconfig work/FreeBSD-armv6-11.1-RPI-B-ZFS-328513.img # note the name this returns, it will probably be md0.
 	root@local# mount /dev/md0s2a /mnt
 
 Create the */mnt/boot/loader.conf* file:
@@ -928,7 +902,7 @@ All done. Let's unmount and write the image. Insert the SD card into the buildin
 
 	root@local# umount /mnt
 	root@local# mdconfig -du 0 # where 0 is from the name it gave you, here md0
-	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img of=/dev/mmcsd0 bs=1m
+	root@local# dd if=/home/hugh/knox/crochet/work/FreeBSD-armv6-11.1-RPI-B-ZFS-328513.img of=/dev/mmcsd0 bs=1m
 	root@local# sync
 
 You can check the progress of the *dd* operation by typing *ctrl-t*. When it's done, put the SD card in your RPi and boot it up. To connect, we'll need to find out what IP address it's been assigned. Sometimes home routers have a 'connected devices' page that shows the active DHCP leases, if not we can do a quick scan for open SSH ports on the local network. (You may need to install *nmap*).
@@ -950,10 +924,10 @@ Congratulations on making it to the end, as a reward, here's a pre-made RPi imag
 It's easiest to flash the image directly, then connect in and make the necessary changes, you should also verify the checksum matches the one shown below.
 
 	hugh@local$ prefix="https://raw.githubusercontent.com/hughobrien/zfs-remote-mirror/master"
-	hugh@local$ fetch $prefix/FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz
-	hugh@local$ sha256 FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz
-	SHA256 (FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz) = 338490fb8985d0778a5de743b1e8f4b5cac9b30ba3b398e6ffa49937c8a56137
-	root@local# xzcat FreeBSD-armv6-10.2-RPI-B-ZFS-295681M.img.xz | dd of=/dev/mmcsd0 bs=1m
+	hugh@local$ fetch $prefix/FreeBSD-armv6-11.1-RPI-B-ZFS-328513.img.xz
+	hugh@local$ sha256 FreeBSD-armv6-11.1-RPI-B-ZFS-328513.img.xz
+	SHA256 (FreeBSD-armv6-11.1-RPI-B-ZFS-328513.img.xz) = TODO338490fb8985d0778a5de743b1e8f4b5cac9b30ba3b398e6ffa49937c8a56137
+	root@local# xzcat FreeBSD-armv6-11.1-RPI-B-ZFS-328513.img.xz | dd of=/dev/mmcsd0 bs=1m
 	# transfer to RPi, give it about 30 seconds to boot.
 	hugh@local$ fetch $prefix/keys/knox-login 
 	hugh@local$ fetch $prefix/keys/knox-login-cert.pub
