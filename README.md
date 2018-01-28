@@ -27,7 +27,7 @@ You can have:
 You will need:
 --------------
 * A FreeBSD 11.1 (or later) [supported](https://www.freebsd.org/doc/en_US.ISO8859-1/articles/committers-guide/archs.html) system, such as:
-  * A [Raspberry Pi (B or 2, maybe 3?)](https://en.wikipedia.org/wiki/Raspberry_Pi), [BeagleBoard](https://en.wikipedia.org/wiki/BeagleBoard) or another [FreeBSD ARM target](https://www.freebsd.org/platforms/arm.html), use a 4GB+ SD Card.
+  * A [Raspberry Pi] (B, 2 or maybe 3)](https://en.wikipedia.org/wiki/Raspberry_Pi), [BeagleBoard](https://en.wikipedia.org/wiki/BeagleBoard) or another [FreeBSD ARM target](https://www.freebsd.org/platforms/arm.html), use a 4GB+ SD Card.
   * An old laptop, with around 512MB of memory, preferably something quiet.
 * A USB Hard Drive.
   * If using an SBC, a drive that comes with its own power supply is useful.
@@ -207,7 +207,7 @@ We'll be editing several config files so I hope you know your *vi* key-bindings.
 	ntpd_enable="YES" # keep the system regular
 	ntpd_sync_on_start="YES"
 
-	# These are architecture dependent, check if yours supports them
+	# These are architecture dependent, check if yours supports them (x86/AMD64 does)
 	powerd_enable="YES" # keep power usage down
 	performance_cx_lowest="C2"
 	economy_cx_lowest="C2"
@@ -776,6 +776,8 @@ Crochet operates around a central build script, called *config.sh*. There's a sa
 
 	board_setup RaspberryPi
 	option ImageSize 3900mb
+	option Growfs
+	option Ntpd
 	KERNCONF=RPI-B-ZFS
 	FREEBSD_SRC=/home/hugh/knox/src
 
@@ -791,16 +793,25 @@ The *KERNCONF* is the specification of how to build the kernel for the Raspberry
 Here are the modifications to make:
 
 * Change 'ident' line from RPI-B to RPI-B-ZFS.
-* Add 'options KSTACK_PAGES=6' as required for ZFS
+* Add 'options KSTACK_PAGES=6' as required for ZFS (put it with the other options lines)
 
 In a previous revision of this guide, I removed a number of modules that probably weren't necessary, (and added ZFS modules which weren't previously built by default) but in the name of simplicity it's probably easier to just leave well-enough-alone. If you're interested in tweaking this, some of the kernel options are explained in more detail in the [Developer's Handbook](https://www.freebsd.org/doc/en/books/developers-handbook/kerneldebug-options.html).
 
 Additionally, previous versions explained how to configure crochet to setup encrypted swap at this point, I've since decided that simply not having swap is a better option. Check the revision history if you feel you need it.
 
-With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. We also need the Raspberry Pi version of *uboot* installed, which will be automatically placed into the image.
+We also need the *u-boot-rpi* package which contains firmware and other low-level funtimes for the Raspberry Pi, it's available as a *pkg* package. I'm using the below version if you need to reproduce exactly.
 
 	root@local# pkg install u-boot-rpi
-	root@local# ln -s /usr/local/share/u-boot/u-boot-rpi/u-boot.bin /usr/local/share/u-boot/u-boot-rpi/u-boot.img # seems this file was renamed and crochet's u-boot-detecting-script still looks in the old place
+	root@local# pkg query %n-%v u-boot-rpi
+	u-boot-rpi-2017.09.00_1
+
+Unfortunately, it seems u-boot renamed a file from *.img* to *.bin* which confuses the version of *crochet* we're using so let's just fake it:
+
+	root@local# ln -s /usr/local/share/u-boot/u-boot-rpi/u-boot.bin /usr/local/share/u-boot/u-boot-rpi/u-boot.img
+
+
+With all this done, we can kick off the build. It needs to run as root as it will mount and unmount some virtual file-systems as it goes. *crochet* automatically runs as many parallel builds as you have cores so no need for the old `-J` tricks.
+
 	root@local# cd /home/hugh/knox/crochet
 	root@local# nice -n 20 ./crochet.sh -c config.sh
 
